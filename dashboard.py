@@ -77,7 +77,7 @@ def meta_analysis(df):
 
 @st.cache_data(show_spinner=False)
 def stato_lead(_conn, start_date, end_date):
-    q_daQualificare = """
+    q_daQualificare = f"""
                         SELECT
                             o.*,
                             ops.name AS stage
@@ -85,15 +85,16 @@ def stato_lead(_conn, start_date, end_date):
                             opportunities o
                         JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
                         WHERE
-                            o.locationId='""" + st.secrets.id_cliente + """'
+                            o.locationId='{st.secrets.id_cliente}'
                             AND ops.pipelineId='CawDqiWkLR5Ht98b4Xgd'
                             AND ops.`name` IN('Nuova Opportunità','Prova Gratuita','Senza risposta','App Tel Fissato','Risposto/Da richiamare')
+                            AND o.createdAt >= '{start_date}T00:00:00.000Z'
+                            AND o.createdAt <= '{end_date}T23:59:59.999Z'
                         ORDER BY
                             o.createdAt;
                         """
     df_daQualificare = conn.query(q_daQualificare, ttl=600)
-    st.write(start_date)
-    st.write(end_date)
+    st.write(df_daQualificare)
     # st.write(df["subAccountId"].values[0])
 
 # ------------------------------
