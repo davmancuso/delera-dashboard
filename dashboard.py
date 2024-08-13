@@ -22,7 +22,7 @@ st.markdown("""
     
     /* Metric boxes */
     [data-testid="stMetric"] {
-        background-color: rgba(28, 131, 225, 0.1);
+        background-color: rgba(255, 255, 225, 0.1);
         border: 1px solid rgba(28, 131, 225, 0.1);
         padding: 5% 5% 5% 10%;
         border-radius: 5px;
@@ -122,7 +122,7 @@ privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative
 
 if st.button("Scarica i dati") & privacy:
     df_raw = api_retrieving(start_date, end_date)
-    df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains("\[HR\]"))]
+    df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains(r"\[HR\]"))]
     df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
     
     # st.dataframe(df_meta.sort_values(by="date", ascending=False))
