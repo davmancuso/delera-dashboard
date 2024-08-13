@@ -22,11 +22,9 @@ st.markdown("""
     
     /* Metric boxes */
     [data-testid="stMetric"] {
-        background-color: rgba(255, 255, 225, 0.1);
-        border: 1px solid rgba(28, 131, 225, 0.1);
-        padding: 5% 5% 5% 10%;
+        background-color: #f0f2f6;
+        border: 1px solid #b12b94;
         border-radius: 5px;
-        color: rgb(30, 103, 119);
         overflow-wrap: break-word;
     }
 
