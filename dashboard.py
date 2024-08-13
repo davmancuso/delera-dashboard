@@ -4,7 +4,6 @@ from urllib.request import urlopen
 import json
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 # ------------------------------
 #             STYLE
@@ -195,13 +194,11 @@ def stato_lead(_conn, start_date, end_date):
         df_qualificati['date'] = pd.to_datetime(df_qualificati['createdAt']).dt.date
         date_counts = df_qualificati.groupby('date').size().reindex(date_range.date, fill_value=0)
 
-        df_qualificati_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
+        df_qualificati_graph = pd.DataFrame({
+            'date': date_range.strftime('%d/%m/%Y'),
+            'count': date_counts.values
+        })
         fig = px.line(df_qualificati_graph, x='Data', y='Lead qualificati', title='Conteggio giornaliero dei lead qualificati')
-        fig.update_layout(
-            xaxis=dict(
-                tickformat='%d/%m/%Y'
-            )
-        )
         st.plotly_chart(fig)
 
 # ------------------------------
