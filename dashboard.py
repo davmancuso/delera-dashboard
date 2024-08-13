@@ -202,8 +202,7 @@ def stato_lead(_conn, start_date, end_date):
                 tickformat='%d/%m/%Y'
             ),
             xaxis_title="Data",
-            yaxis_title="Numero di Lead Qualificati",
-            line_shape="spline"
+            yaxis_title="Numero di Lead Qualificati"
         )
         fig.update_traces(line=dict(color='#b12b94'))
         st.plotly_chart(fig)
