@@ -50,7 +50,7 @@ def thousand_2(value):
 
 @st.cache_data(show_spinner=False)
 def api_retrieving(start_date, end_date):
-    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.windsor_api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.windsor_fields + "&_renderer=json"
+    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
@@ -76,9 +76,25 @@ def meta_analysis(df):
         st.metric("Click", thousand_0(df["clicks"].sum()))
 
 @st.cache_data(show_spinner=False)
-def db_connection(_conn):
-    df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
-    st.write(df["subAccountId"].values[0])
+def stato_lead(_conn, start_date, end_date):
+    q_daQualificare = """
+                        SELECT
+                            o.*,
+                            ops.name AS stage
+                        FROM
+                            opportunities o
+                        JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
+                        WHERE
+                            o.locationId='""" + st.secrets.id_cliente + """'
+                            AND ops.pipelineId='CawDqiWkLR5Ht98b4Xgd'
+                            AND ops.`name` IN('Nuova Opportunità','Prova Gratuita','Senza risposta','App Tel Fissato','Risposto/Da richiamare')
+                        ORDER BY
+                            o.createdAt;
+                        """
+    df_daQualificare = conn.query(q_daQualificare, ttl=600)
+    st.write(start_date)
+    st.write(end_date)
+    # st.write(df["subAccountId"].values[0])
 
 # ------------------------------
 #             BODY
@@ -103,4 +119,4 @@ if st.button("Scarica i dati") & privacy:
     meta_analysis(df_meta)
 
     conn = st.connection('mysql', type='sql')
-    db_connection(conn)
+    db_connection(conn, start_date, end_date)
