@@ -27,7 +27,6 @@ st.markdown("""
         border-radius: 5px;
         padding: 20px;
         overflow-wrap: break-word;
-        width: fit-content;
         margin: auto;
     }
 
