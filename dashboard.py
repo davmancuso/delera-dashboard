@@ -136,25 +136,30 @@ def stato_lead(_conn, start_date, end_date):
     df = conn.query(query, show_spinner="Estraendo i dati dal database...", ttl=600)
     
     daQualificare = ['Nuova Opportunità',
-                        'Prova Gratuita',
-                        'Senza risposta',
-                        'App Tel Fissato',
-                        'Risposto/Da richiamare']
+                    'Prova Gratuita',
+                    'Senza risposta',
+                    'App Tel Fissato',
+                    'Risposto/Da richiamare']
     qualificati = ['Autonomo - Call Onboarding',
-                        'Call onboarding',
-                        'Cancellati - Da riprogrammare',
-                        'No Show - Ghost',
-                        'Non Pronto (in target)',
-                        'Seconda call / demo',
-                        'Preventivo Mandato / Follow Up',
-                        'Vinto Abbonamento Mensile',
-                        'Vinto Abbonamento Annuale',
-                        'Vinto mensile con acc.impresa',
-                        'Vinto annuale con acc.impresa',
-                        'Vinti generici',
-                        'Ag.marketing/collaborazioni',
-                        'Cliente Non vinto ']
-    
+                    'Call onboarding',
+                    'Cancellati - Da riprogrammare',
+                    'No Show - Ghost',
+                    'Non Pronto (in target)',
+                    'Seconda call / demo',
+                    'Preventivo Mandato / Follow Up',
+                    'Vinto Abbonamento Mensile',
+                    'Vinto Abbonamento Annuale',
+                    'Vinto mensile con acc.impresa',
+                    'Vinto annuale con acc.impresa',
+                    'Vinti generici',
+                    'Ag.marketing/collaborazioni',
+                    'Cliente Non vinto ']
+    vinti = ['Vinto Abbonamento Mensile',
+            'Vinto Abbonamento Annuale',
+            'Vinto mensile con acc.impresa',
+            'Vinto annuale con acc.impresa',
+            'Vinti generici']
+
     st.title("Stato dei lead")
 
     lead_daQualificare = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
@@ -170,6 +175,17 @@ def stato_lead(_conn, start_date, end_date):
     with r2_c3:
         lead_tassoQualifica = percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0]))
         st.metric("Tasso di qualifica", lead_tassoQualifica)
+    
+    r3_c1, r3_c2, r3_c3 = st.columns(3)
+    with r3_c1:
+        lead_vinti= thousand_0(df[df['stage'].isin(vinti)].shape[0])
+        st.metric("Lead qualificati", lead_vinti)
+    with r3_c2:
+        lead_vintiPerGiorno = thousand_2(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))
+        st.metric("Lead qualificati al giorno", lead_vintiPerGiorno)
+    with r3_c3:
+        lead_tassoVendita = percentage(df[df['stage'].isin(vinti)].shape[0]/df[df['stage'].isin(qualificati)].shape[0])
+        st.metric("Tasso di qualifica", lead_tassoVendita)
     
 
 # ------------------------------
