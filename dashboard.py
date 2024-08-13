@@ -168,19 +168,19 @@ def stato_lead(_conn, start_date, end_date):
         st.metric("Lead da qualificare", lead_daQualificare)
         
         col1_1, col1_2, col1_3 = st.columns(3)
-        with col1:
+        with col1_1:
             lead_qualificati= thousand_0(df[df['stage'].isin(qualificati)].shape[0])
             st.metric("Lead qualificati", lead_qualificati)
 
             lead_vinti= thousand_0(df[df['stage'].isin(vinti)].shape[0])
             st.metric("Vendite", lead_vinti)
-        with col2:
+        with col1_2:
             lead_qualificatiPerGiorno = thousand_2(df[df['stage'].isin(qualificati)].shape[0]/((end_date - start_date).days))
             st.metric("Lead qualificati al giorno", lead_qualificatiPerGiorno)
 
             lead_vintiPerGiorno = thousand_2(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))
             st.metric("Vendite al giorno", lead_vintiPerGiorno)
-        with col3:
+        with col1_3:
             lead_tassoQualifica = percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0]))
             st.metric("Tasso di qualifica", lead_tassoQualifica)
 
