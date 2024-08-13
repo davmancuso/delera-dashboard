@@ -75,7 +75,7 @@ def meta_analysis(df):
         st.metric("Click", thousand_0(df["clicks"].sum()))
 
 @st.cache_data(show_spinner=False)
-def db_connection(db):
+def db_connection(_conn):
     df = db.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
     st.write(df)
 
@@ -101,5 +101,5 @@ if st.button("Scarica i dati") & privacy:
     # st.dataframe(df_meta.sort_values(by="date", ascending=False))
     meta_analysis(df_meta)
 
-    db = st.connection('mysql', type='sql')
-    db_connection(db)
+    conn = st.connection('mysql', type='sql')
+    db_connection(conn)
