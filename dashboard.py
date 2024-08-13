@@ -76,7 +76,7 @@ def meta_analysis(df):
 
 @st.cache_data(show_spinner=False)
 def db_connection(_conn):
-    df = db.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
+    df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
     st.write(df)
 
 # ------------------------------
