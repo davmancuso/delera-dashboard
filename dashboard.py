@@ -7,6 +7,18 @@ import pandas as pd
 # ------------------------------
 #             STYLE
 # ------------------------------
+st.set_page_config(
+    page_title="Delera - Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Report a bug': "https://www.extremelycoolapp.com/bug",
+        'About': "# This is a header. This is an *extremely* cool app!"
+    }
+)
+
 st.markdown("""
     <style type='text/css'>
 
@@ -82,7 +94,7 @@ def api_retrieving(start_date, end_date):
 @st.cache_data
 def meta_analysis(df):
     st.title("Analisi delle campagne Meta")
-    st.warning("Formule errare, da verificare")
+    st.warning("Formule errate, da verificare!")
 
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
@@ -142,6 +154,8 @@ def stato_lead(_conn, start_date, end_date):
                         'Ag.marketing/collaborazioni',
                         'Cliente Non vinto ']
     
+    st.title("Stato dei lead")
+
     lead_daQualificare = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
     st.metric("Lead da qualificare", lead_daQualificare)
 
