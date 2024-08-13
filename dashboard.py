@@ -197,7 +197,7 @@ st.title("Parametri della analisi")
 st.subheader("Selezionare il periodo desiderato")
 col_date1, col_date2 = st.columns(2)
 with col_date1:
-    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=29)), format="DD/MM/YYYY")
+    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=13)), format="DD/MM/YYYY")
 with col_date2:
     end_date = st.date_input("Fine", (datetime.today() - timedelta(days=1)), format="DD/MM/YYYY")
 
