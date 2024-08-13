@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from urllib.request import urlopen
 import json
 import pandas as pd
+import plotly.express as px
 
 # ------------------------------
 #             STYLE
@@ -187,7 +188,15 @@ def stato_lead(_conn, start_date, end_date):
             lead_tassoVendita = percentage(df[df['stage'].isin(vinti)].shape[0]/df[df['stage'].isin(qualificati)].shape[0])
             st.metric("Tasso di vendita", lead_tassoVendita)
     with col2:
-        st.write("Inserire grafico")
+        df_qualificati = df[df['stage'].isin(qualificati)]
+
+        date_range = pd.date_range(start=start_date, end=end_date)
+        df_qualificati['date'] = pd.to_datetime(df_qualificati['createdAt']).dt.date
+        date_counts = df_qualificati.groupby('date').size().reindex(date_range.date, fill_value=0)
+
+        df_qualificati_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
+        fig = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati')
+        st.plotly_chart(fig)
 
 # ------------------------------
 #             BODY
