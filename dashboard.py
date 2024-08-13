@@ -119,4 +119,4 @@ if st.button("Scarica i dati") & privacy:
     meta_analysis(df_meta)
 
     conn = st.connection('mysql', type='sql')
-    db_connection(conn, start_date, end_date)
+    stato_lead(conn, start_date, end_date)
