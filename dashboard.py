@@ -35,6 +35,7 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrateg
 # ------------------------------
 #          FUNCTIONS
 # ------------------------------
+
 @st.cache_data
 def currency(value):
     return "€ {:,.2f}".format(value)
@@ -48,7 +49,7 @@ def thousand_2(value):
     return "{:,.2f}".format(value)
 
 @st.cache_data(show_spinner=False)
-def windsor_retrieving(start_date, end_date):
+def api_retrieving(start_date, end_date):
     url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.windsor_api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.windsor_fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
@@ -77,7 +78,7 @@ def meta_analysis(df):
 @st.cache_data(show_spinner=False)
 def db_connection(_conn):
     df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
-    st.write(df["subAccountId"])
+    st.write(df["subAccountId"].values)
 
 # ------------------------------
 #             BODY
@@ -94,7 +95,7 @@ with col_date2:
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
 if st.button("Scarica i dati") & privacy:
-    df_raw = windsor_retrieving(start_date, end_date)
+    df_raw = api_retrieving(start_date, end_date)
     df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains("\[HR\]"))]
     df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
     
