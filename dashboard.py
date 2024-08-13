@@ -97,7 +97,7 @@ def meta_analysis(df):
 
 @st.cache_data(show_spinner=False)
 def stato_lead(_conn, start_date, end_date):
-    q_daQualificare = f"""
+    query = f"""
                         SELECT
                             o.*,
                             ops.name AS stage
@@ -107,14 +107,36 @@ def stato_lead(_conn, start_date, end_date):
                         WHERE
                             o.locationId='{st.secrets.id_cliente}'
                             AND ops.pipelineId='CawDqiWkLR5Ht98b4Xgd'
-                            AND ops.`name` IN('Nuova Opportunità','Prova Gratuita','Senza risposta','App Tel Fissato','Risposto/Da richiamare')
                             AND o.createdAt >= '{start_date}T00:00:00.000Z'
                             AND o.createdAt <= '{end_date}T23:59:59.999Z'
                         ORDER BY
                             o.createdAt;
                         """
-    df_daQualificare = conn.query(q_daQualificare, show_spinner="Estraendo i dati dal database...", ttl=600)
-    st.metric("Lead da qualificare", thousand_0(len(df_daQualificare)))
+
+    df = conn.query(query, show_spinner="Estraendo i dati dal database...", ttl=600)
+    
+    daQualificare = ['Nuova Opportunità',
+                        'Prova Gratuita',
+                        'Senza risposta',
+                        'App Tel Fissato',
+                        'Risposto/Da richiamare']
+    qualificati = ['Autonomo - Call Onboarding',
+                        'Call onboarding',
+                        'Cancellati - Da riprogrammare',
+                        'No Show - Ghost',
+                        'Non Pronto (in target)',
+                        'Seconda call / demo',
+                        'Preventivo Mandato / Follow Up',
+                        'Vinto Abbonamento Mensile',
+                        'Vinto Abbonamento Annuale',
+                        'Vinto mensile con acc.impresa',
+                        'Vinto annuale con acc.impresa',
+                        'Vinti generici',
+                        'Ag.marketing/collaborazioni',
+                        'Cliente Non vinto ']
+    
+    st.metric("Lead da qualificare", thousand_0(df[df['stage'].isin(daQualificare)].shape[0]))
+    
 
 # ------------------------------
 #             BODY
