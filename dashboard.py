@@ -20,6 +20,23 @@ st.markdown("""
         display: none !important;
     }    
     
+    /* Metric boxes */
+    div[data-testid="metric-container"] {
+        background-color: rgba(28, 131, 225, 0.1);
+        border: 1px solid rgba(28, 131, 225, 0.1);
+        padding: 5% 5% 5% 10%;
+        border-radius: 5px;
+        color: rgb(30, 103, 119);
+        overflow-wrap: break-word;
+    }
+
+    /* breakline for metric text */
+    div[data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
+        overflow-wrap: break-word;
+        white-space: break-spaces;
+        color: red;
+    }
+
     </style>
 """, unsafe_allow_html=True)
 
@@ -94,9 +111,7 @@ def stato_lead(_conn, start_date, end_date):
                             o.createdAt;
                         """
     df_daQualificare = conn.query(q_daQualificare, show_spinner="Estraendo i dati dal database...", ttl=600)
-    # st.write(df_daQualificare)
     st.metric("Lead da qualificare", thousand_0(len(df_daQualificare)))
-    # st.write(df["subAccountId"].values[0])
 
 # ------------------------------
 #             BODY
