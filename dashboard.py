@@ -21,20 +21,13 @@ st.markdown("""
     }    
     
     /* Metric boxes */
-    [data-testid="metric-container"] {
+    [data-testid="stMetric"] {
         background-color: rgba(28, 131, 225, 0.1);
         border: 1px solid rgba(28, 131, 225, 0.1);
         padding: 5% 5% 5% 10%;
         border-radius: 5px;
         color: rgb(30, 103, 119);
         overflow-wrap: break-word;
-    }
-
-    /* breakline for metric text */
-    [data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
-        overflow-wrap: break-word;
-        white-space: break-spaces;
-        color: red;
     }
 
     </style>
