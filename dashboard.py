@@ -27,6 +27,18 @@ st.markdown("""
         border-radius: 5px;
         padding: 20px;
         overflow-wrap: break-word;
+        width: fit-content;
+        margin: auto;
+    }
+
+    [data-testid="stMetric"] > div {
+        width: fit-content;
+        margin: auto;
+    }
+
+    [data-testid="stMetric"] label {
+        width: fit-content;
+        margin: auto;
     }
 
     </style>
