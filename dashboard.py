@@ -95,7 +95,7 @@ def stato_lead(_conn, start_date, end_date):
                         """
     df_daQualificare = conn.query(q_daQualificare, show_spinner="Estraendo i dati dal database...", ttl=600)
     # st.write(df_daQualificare)
-    st.metric("Lead da qualificare", thousand_0(len(df)))
+    st.metric("Lead da qualificare", thousand_0(len(df_daQualificare)))
     # st.write(df["subAccountId"].values[0])
 
 # ------------------------------
