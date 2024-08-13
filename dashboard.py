@@ -35,13 +35,6 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrateg
 # ------------------------------
 #          FUNCTIONS
 # ------------------------------
-@st.cache_data(show_spinner=False)
-def windsor_retrieving(start_date, end_date):
-    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.windsor_api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.windsor_fields + "&_renderer=json"
-    response = urlopen(url)
-    data_json = json.loads(response.read())
-    return pd.json_normalize(data_json, record_path=["data"])
-
 @st.cache_data
 def currency(value):
     return "€ {:,.2f}".format(value)
@@ -53,6 +46,13 @@ def thousand_0(value):
 @st.cache_data
 def thousand_2(value):
     return "{:,.2f}".format(value)
+
+@st.cache_data(show_spinner=False)
+def windsor_retrieving(start_date, end_date):
+    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.windsor_api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.windsor_fields + "&_renderer=json"
+    response = urlopen(url)
+    data_json = json.loads(response.read())
+    return pd.json_normalize(data_json, record_path=["data"])
 
 @st.cache_data
 def meta_analysis(df):
@@ -74,10 +74,9 @@ def meta_analysis(df):
     with r3_c1:
         st.metric("Click", thousand_0(df["clicks"].sum()))
 
-def db_connection():
-    conn = st.connection('mysql', type='sql')
-
-    df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
+@st.cache_data(show_spinner=False)
+def db_connection(db):
+    df = db.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)    
     st.write(df)
 
 # ------------------------------
@@ -102,7 +101,5 @@ if st.button("Scarica i dati") & privacy:
     # st.dataframe(df_meta.sort_values(by="date", ascending=False))
     meta_analysis(df_meta)
 
-    db_connection()
-    # conn = st.connection('mysql', type='sql')
-    # df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)
-    # st.write(df)
+    db = st.connection('mysql', type='sql')
+    db_connection(db)
