@@ -11,12 +11,7 @@ st.set_page_config(
     page_title="Delera - Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': 'https://www.extremelycoolapp.com/help',
-        'Report a bug': "https://www.extremelycoolapp.com/bug",
-        'About': "# This is a header. This is an *extremely* cool app!"
-    }
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
@@ -68,6 +63,8 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrateg
 #          FUNCTIONS
 # ------------------------------
 
+# Globali
+# ------------------------------
 @st.cache_data
 def currency(value):
     return "€ {:,.2f}".format(value)
@@ -91,6 +88,8 @@ def api_retrieving(start_date, end_date):
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
 
+# Meta
+# ------------------------------
 @st.cache_data
 def meta_analysis(df):
     st.title("Analisi delle campagne Meta")
@@ -114,6 +113,8 @@ def meta_analysis(df):
     with r3_c1:
         st.metric("Click", thousand_0(df["clicks"].sum()))
 
+# Database
+# ------------------------------
 @st.cache_data(show_spinner=False)
 def stato_lead(_conn, start_date, end_date):
     query = f"""
@@ -164,7 +165,7 @@ def stato_lead(_conn, start_date, end_date):
         lead_qualificati= thousand_0(df[df['stage'].isin(qualificati)].shape[0])
         st.metric("Lead qualificati", lead_qualificati)
     with r2_c2:
-        lead_qualificatiPerGiorno = thousand_2(df[df['stage'].isin(qualificati)].shape[0]/(end_date - start_date))
+        lead_qualificatiPerGiorno = thousand_2(df[df['stage'].isin(qualificati)].shape[0]/((end_date - start_date).days))
         st.metric("Lead qualificati al giorno", lead_qualificatiPerGiorno)
     with r2_c3:
         lead_tassoQualifica = percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0]))
@@ -187,11 +188,17 @@ privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative
 
 if st.button("Scarica i dati") & privacy:
     df_raw = api_retrieving(start_date, end_date)
+
+    # Meta
+    # ------------------------------
     df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains(r"\[HR\]"))]
-    df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
-    
-    # st.dataframe(df_meta.sort_values(by="date", ascending=False))
     meta_analysis(df_meta)
 
+    # Google
+    # ------------------------------
+    df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
+
+    # Database
+    # ------------------------------
     conn = st.connection('mysql', type='sql')
     stato_lead(conn, start_date, end_date)
