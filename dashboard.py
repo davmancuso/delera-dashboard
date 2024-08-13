@@ -61,6 +61,10 @@ def currency(value):
     return "€ {:,.2f}".format(value)
 
 @st.cache_data
+def percentage(value):
+    return "{:,.2f}%".format(value)
+
+@st.cache_data
 def thousand_0(value):
     return "{:,.0f}".format(value)
 
@@ -70,7 +74,7 @@ def thousand_2(value):
 
 @st.cache_data(show_spinner=False)
 def api_retrieving(start_date, end_date):
-    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
+    url = st.secrets.source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
@@ -136,6 +140,14 @@ def stato_lead(_conn, start_date, end_date):
                         'Cliente Non vinto ']
     
     st.metric("Lead da qualificare", thousand_0(df[df['stage'].isin(daQualificare)].shape[0]))
+
+    r2_c1, r2_c2, r2_c3 = st.columns(3)
+    with r2_c1:
+        st.metric("Lead qualificati", thousand_0(df[df['stage'].isin(qualificati)].shape[0]))
+    with r2_c2:
+        st.metric("Lead qualificati al giorno", thousand_2(df[df['stage'].isin(qualificati)].shape[0]/(end_date - start_date)))
+    with r2_c3:
+        st.metric("Tasso di qualifica", percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0])))
     
 
 # ------------------------------
