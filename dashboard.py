@@ -81,6 +81,9 @@ def api_retrieving(start_date, end_date):
 
 @st.cache_data
 def meta_analysis(df):
+    st.title("Analisi delle campagne Meta")
+    st.warning("Formule errare, da verificare")
+
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
         st.metric("Spesa totale", currency(df["spend"].sum()))
@@ -139,15 +142,19 @@ def stato_lead(_conn, start_date, end_date):
                         'Ag.marketing/collaborazioni',
                         'Cliente Non vinto ']
     
-    st.metric("Lead da qualificare", thousand_0(df[df['stage'].isin(daQualificare)].shape[0]))
+    lead_daQualificare = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
+    st.metric("Lead da qualificare", lead_daQualificare)
 
     r2_c1, r2_c2, r2_c3 = st.columns(3)
     with r2_c1:
-        st.metric("Lead qualificati", thousand_0(df[df['stage'].isin(qualificati)].shape[0]))
+        lead_qualificati= thousand_0(df[df['stage'].isin(qualificati)].shape[0])
+        st.metric("Lead qualificati", lead_qualificati)
     with r2_c2:
-        st.metric("Lead qualificati al giorno", thousand_2(df[df['stage'].isin(qualificati)].shape[0]/(end_date - start_date)))
+        lead_qualificatiPerGiorno = thousand_2(df[df['stage'].isin(qualificati)].shape[0]/(end_date - start_date))
+        st.metric("Lead qualificati al giorno", lead_qualificatiPerGiorno)
     with r2_c3:
-        st.metric("Tasso di qualifica", percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0])))
+        lead_tassoQualifica = percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0]))
+        st.metric("Tasso di qualifica", lead_tassoQualifica)
     
 
 # ------------------------------
