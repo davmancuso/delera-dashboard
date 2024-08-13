@@ -21,7 +21,7 @@ st.markdown("""
     }    
     
     /* Metric boxes */
-    div[data-testid="metric-container"] {
+    [data-testid="metric-container"] {
         background-color: rgba(28, 131, 225, 0.1);
         border: 1px solid rgba(28, 131, 225, 0.1);
         padding: 5% 5% 5% 10%;
@@ -31,7 +31,7 @@ st.markdown("""
     }
 
     /* breakline for metric text */
-    div[data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
+    [data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
         overflow-wrap: break-word;
         white-space: break-spaces;
         color: red;
