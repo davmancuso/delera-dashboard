@@ -1,0 +1,108 @@
+import streamlit as st
+from datetime import datetime, timedelta
+from urllib.request import urlopen
+import json
+import pandas as pd
+
+# ------------------------------
+#             STYLE
+# ------------------------------
+st.markdown("""
+    <style type='text/css'>
+
+    /* Remove sidebar X button */
+    [data-testid="stSidebar"] div div button {
+        display: none;
+    }
+
+    /* Remove footer */
+    footer {
+        display: none !important;
+    }    
+    
+    </style>
+""", unsafe_allow_html=True)
+
+# ------------------------------
+#             SIDEBAR
+# ------------------------------
+st.sidebar.title("Analisi dei dati")
+st.sidebar.subheader("Dati cliente")
+st.sidebar.text("Cliente: Alpha Group stl\nProgetto: Delera\nWebsite: https://delera.io")
+st.sidebar.subheader("Dati agenzia")
+st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
+
+# ------------------------------
+#          FUNCTIONS
+# ------------------------------
+@st.cache_data(show_spinner=False)
+def windsor_retrieving(start_date, end_date):
+    url = "https://connectors.windsor.ai/all?api_key=" + st.secrets.windsor_api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.windsor_fields + "&_renderer=json"
+    response = urlopen(url)
+    data_json = json.loads(response.read())
+    return pd.json_normalize(data_json, record_path=["data"])
+
+@st.cache_data
+def currency(value):
+    return "€ {:,.2f}".format(value)
+
+@st.cache_data
+def thousand_0(value):
+    return "{:,.0f}".format(value)
+
+@st.cache_data
+def thousand_2(value):
+    return "{:,.2f}".format(value)
+
+@st.cache_data
+def meta_analysis(df):
+    r1_c1, r1_c2 = st.columns(2)
+    with r1_c1:
+        st.metric("Spesa totale", currency(df["spend"].sum()))
+    with r1_c2:
+        st.metric("Campagne attive", df["campaign"].nunique())
+    
+    r2_c1, r2_c2, r2_c3 = st.columns(3)
+    with r2_c1:
+        st.metric("Impression", thousand_0(df["impressions"].sum()))
+    with r2_c2:
+        st.metric("Frequenza", thousand_2(df["frequency"].mean()))
+    with r2_c3:
+        st.metric("CPM", currency(df["impressions"].sum() / df["spend"].sum()))
+    
+    r3_c1, r3_c2, r3_c3 = st.columns(3)
+    with r3_c1:
+        st.metric("Click", thousand_0(df["clicks"].sum()))
+
+# def db_connection():
+#     conn = st.connection('mysql', type='sql')
+
+#     df = conn.query('SELECT * FROM sub_account_businesses;', ttl=600)
+    
+#     st.write(df)
+
+# ------------------------------
+#             BODY
+# ------------------------------
+st.title("Parametri della analisi")
+
+st.subheader("Selezionare il periodo desiderato")
+col_date1, col_date2 = st.columns(2)
+with col_date1:
+    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=29)), format="DD/MM/YYYY")
+with col_date2:
+    end_date = st.date_input("Fine", (datetime.today() - timedelta(days=1)), format="DD/MM/YYYY")
+
+privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
+
+if st.button("Scarica i dati") & privacy:
+    df_raw = windsor_retrieving(start_date, end_date)
+    df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains("\[HR\]"))]
+    df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
+    
+    # st.dataframe(df_meta.sort_values(by="date", ascending=False))
+    meta_analysis(df_meta)
+
+    conn = st.connection('mysql', type='sql')
+    df = conn.query('SELECT subAccountId FROM sub_account_businesses WHERE`name`="Delera - Gestionale All-In-One";', ttl=600)
+    st.write(df)
