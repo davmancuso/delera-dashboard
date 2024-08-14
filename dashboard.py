@@ -60,6 +60,7 @@ st.sidebar.subheader("Dati cliente")
 st.sidebar.text("Cliente: Alpha Group stl\nProgetto: Delera\nWebsite: https://delera.io")
 st.sidebar.subheader("Dati agenzia")
 st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
+st.sidebar.title("Sezioni della dashboard")
 
 # ------------------------------
 #          FUNCTIONS
@@ -136,7 +137,7 @@ def stato_lead(_conn, start_date, end_date):
                         """
 
     df = conn.query(query, show_spinner="Estraendo i dati dal database...", ttl=600)
-    
+
     daQualificare = ['Nuova Opportunità',
                     'Prova Gratuita',
                     'Senza risposta',
@@ -156,11 +157,16 @@ def stato_lead(_conn, start_date, end_date):
                     'Vinti generici',
                     'Ag.marketing/collaborazioni',
                     'Cliente Non vinto ']
+    leadPersi = ['Numero Non corretto flusso di email marketing ',
+                'Fuori target',
+                'Lead Perso ( 10 tentativi non risp)']
     vinti = ['Vinto Abbonamento Mensile',
             'Vinto Abbonamento Annuale',
             'Vinto mensile con acc.impresa',
             'Vinto annuale con acc.impresa',
             'Vinti generici']
+    persi = ['Non Pronto (in target)',
+            'Cliente Non vinto ']
 
     st.title("Stato dei lead")
 
@@ -211,29 +217,66 @@ def stato_lead(_conn, start_date, end_date):
     with col3:
         fig_lqperday = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=lead_qualificatiPerGiorno,
+            value=float(lead_qualificatiPerGiorno)/12*100,
+            number={'suffix': "%"},
             title={'text': "Lead qualificati al giorno: 12"},
             gauge={
-                'axis': {'range': [0, 20]},
+                'axis': {'range': [0, 100]},
                 'bar': {'color': "#b12b94"},
                 'steps': [
-                    {'range': [0, 5], 'color': "lightgray"},
-                    {'range': [5, 10], 'color': "gray"},
-                    {'range': [10, 15], 'color': "lightgreen"},
-                    {'range': [15, 20], 'color': "green"}
+                    {'range': [0, 25], 'color': '#f0f2f6'},
+                    {'range': [25, 50], 'color': '#f0f2f6'},
+                    {'range': [50, 75], 'color': '#f0f2f6'},
+                    {'range': [75, 100], 'color': '#f0f2f6'}
                 ],
                 'threshold': {
                     'line': {'color': "#1a1e1c", 'width': 4},
                     'thickness': 0.75,
-                    'value': 12
+                    'value': 100
                 }
             }
         ))
         st.plotly_chart(fig_lqperday)
     with col4:
-        st.write("Gauge: Vendite al giorno")
+        fig_lqperday = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=float(lead_vintiPerGiorno)/3*100,
+            number={'suffix': "%"},
+            title={'text': "Vendite al giorno: 3"},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': "#b12b94"},
+                'steps': [
+                    {'range': [0, 25], 'color': '#f0f2f6'},
+                    {'range': [25, 50], 'color': '#f0f2f6'},
+                    {'range': [50, 75], 'color': '#f0f2f6'},
+                    {'range': [75, 100], 'color': '#f0f2f6'}
+                ],
+                'threshold': {
+                    'line': {'color': "#1a1e1c", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 100
+                }
+            }
+        ))
+        st.plotly_chart(fig_lqperday)
     with col5:
-        st.write("Opportunità perse")
+        opportunitàPerStage = df['stage'].value_counts()
+
+        opportunitàPerse = leadPersi + persi
+        filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
+        opportunitàPerse_df = pd.DataFrame(list(filtered_counts.items()), columns=['Stage', 'Opportunità'])
+        st.table(opportunitàPerse_df)
+
+        # opportunitàPerse_fig = go.Figure(data=[go.Table(
+            # header=dict(values=list(opportunitàPerse_df.columns),
+                        # fill_color='paleturquoise',
+                        # align='left'),
+            # cells=dict(values=[opportunitàPerse_df.Stage, opportunitàPerse_df.Opportunità],
+                    # fill_color='lavender',
+                    # align='left'))
+        # ])
+        # st.plotly_chart(opportunitàPerse_fig)
 
 # ------------------------------
 #             BODY
