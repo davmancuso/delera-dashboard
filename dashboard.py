@@ -219,7 +219,7 @@ def stato_lead(_conn, start_date, end_date):
                 'steps': [
                     {'range': [0, 5], 'color': "lightgray"},
                     {'range': [5, 10], 'color': "gray"},
-                    {'range': [10, 15], 'color': "lightgreen"}
+                    {'range': [10, 15], 'color': "lightgreen"},
                     {'range': [15, 20], 'color': "green"}
                 ],
                 'threshold': {
