@@ -196,17 +196,44 @@ def stato_lead(_conn, start_date, end_date):
         date_counts = df_qualificati.groupby('date').size().reindex(date_range.date, fill_value=0)
 
         df_qualificati_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
-        fig = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati', markers=True)
-        fig.update_layout(
+        fig_lq = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati', markers=True)
+        fig_lq.update_layout(
             xaxis=dict(
                 tickformat='%d/%m/%Y'
             ),
             xaxis_title="Data",
             yaxis_title="Numero di Lead Qualificati"
         )
-        fig.add_traces(go.Scatter(line_shape='spline'))
-        fig.update_traces(line=dict(color='#b12b94'))
-        st.plotly_chart(fig)
+        fig_lq.update_traces(line=dict(color='#b12b94'))
+        st.plotly_chart(fig_lq)
+
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        fig_lqperday = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=lead_qualificatiPerGiorno,
+            title={'text': "Lead qualificati al giorno: 12"},
+            gauge={
+                'axis': {'range': [0, 20]},
+                'bar': {'color': "#b12b94"},
+                'steps': [
+                    {'range': [0, 5], 'color': "lightgray"},
+                    {'range': [5, 10], 'color': "gray"},
+                    {'range': [10, 15], 'color': "lightgreen"}
+                    {'range': [15, 20], 'color': "green"}
+                ],
+                'threshold': {
+                    'line': {'color': "#1a1e1c", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 12
+                }
+            }
+        ))
+        st.plotly_chart(fig_lqperday)
+    with col4:
+        st.write("Gauge: Vendite al giorno")
+    with col5:
+        st.write("Opportunità perse")
 
 # ------------------------------
 #             BODY
