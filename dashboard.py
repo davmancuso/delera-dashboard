@@ -196,7 +196,7 @@ def stato_lead(_conn, start_date, end_date):
         date_counts = df_qualificati.groupby('date').size().reindex(date_range.date, fill_value=0)
 
         df_qualificati_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
-        fig = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati')
+        fig = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati', markers=True)
         fig.update_layout(
             xaxis=dict(
                 tickformat='%d/%m/%Y'
@@ -204,6 +204,7 @@ def stato_lead(_conn, start_date, end_date):
             xaxis_title="Data",
             yaxis_title="Numero di Lead Qualificati"
         )
+        fig.add_traces(go.Scatter(line_shape='spline'))
         fig.update_traces(line=dict(color='#b12b94'))
         st.plotly_chart(fig)
 
