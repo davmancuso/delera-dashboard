@@ -1,4 +1,5 @@
 import streamlit as st
+import mysql.connector
 from datetime import datetime, timedelta
 from urllib.request import urlopen
 import json
@@ -57,10 +58,9 @@ st.markdown("""
 # ------------------------------
 st.sidebar.title("Analisi dei dati")
 st.sidebar.subheader("Dati cliente")
-st.sidebar.text("Cliente: Alpha Group stl\nProgetto: Delera\nWebsite: https://delera.io")
+st.sidebar.text("Cliente: Alpha Group stl\nProgetto: Delera\nWebsite: delera.io")
 st.sidebar.subheader("Dati agenzia")
-st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: https://brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
-st.sidebar.title("Sezioni della dashboard")
+st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
 
 # ------------------------------
 #          FUNCTIONS
@@ -119,7 +119,8 @@ def meta_analysis(df):
 # Database
 # ------------------------------
 @st.cache_data(show_spinner=False)
-def stato_lead(_conn, start_date, end_date):
+def opportunities(_conn, start_date, end_date):
+    cursor = conn.cursor()
     query = f"""
                         SELECT
                             o.*,
@@ -136,7 +137,13 @@ def stato_lead(_conn, start_date, end_date):
                             o.createdAt;
                         """
 
-    df = conn.query(query, show_spinner="Estraendo i dati dal database...", ttl=600)
+    cursor.execute(query)
+    df_raw = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    df = pd.DataFrame(df_raw, columns=cursor.column_names)
 
     daQualificare = ['Nuova Opportunità',
                     'Prova Gratuita',
@@ -167,11 +174,21 @@ def stato_lead(_conn, start_date, end_date):
             'Vinti generici']
     persi = ['Non Pronto (in target)',
             'Cliente Non vinto ']
+    venditeGestione = ['Autonomo - Call Onboarding',
+                    'Call onboarding',
+                    'Cancellati - Da riprogrammare',
+                    'No Show - Ghost']
+    venditeChiusura = ['Seconda call / demo',
+                    'Preventivo Mandato / Follow Up']
 
     st.title("Stato dei lead")
 
     col1, col2 = st.columns(2)
     with col1:
+        st.markdown("""
+        <hr style="height:0px;border-width: 0px;;margin-top:5px;">
+        """, unsafe_allow_html=True)
+
         lead_daQualificare = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
         st.metric("Lead da qualificare", lead_daQualificare)
         
@@ -261,22 +278,67 @@ def stato_lead(_conn, start_date, end_date):
         ))
         st.plotly_chart(fig_lqperday)
     with col5:
+        st.markdown("""
+        <hr style="height:0px;border-width: 0px;;margin-top:35px;">
+        """, unsafe_allow_html=True)
+
+        st.subheader("Bleed out dei lead")
+
         opportunitàPerStage = df['stage'].value_counts()
 
         opportunitàPerse = leadPersi + persi
         filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
         opportunitàPerse_df = pd.DataFrame(list(filtered_counts.items()), columns=['Stage', 'Opportunità'])
-        st.table(opportunitàPerse_df)
+        
+        st.dataframe(opportunitàPerse_df.style.hide(axis='index'))
+    
+    st.title("Gestione delle opportunità")
 
-        # opportunitàPerse_fig = go.Figure(data=[go.Table(
-            # header=dict(values=list(opportunitàPerse_df.columns),
-                        # fill_color='paleturquoise',
-                        # align='left'),
-            # cells=dict(values=[opportunitàPerse_df.Stage, opportunitàPerse_df.Opportunità],
-                    # fill_color='lavender',
-                    # align='left'))
-        # ])
-        # st.plotly_chart(opportunitàPerse_fig)
+    col6, col7 = st.columns(2)
+    with col6:
+        st.markdown("""
+        <hr style="height:0px;border-width: 0px;;margin-top:5px;">
+        """, unsafe_allow_html=True)
+
+        opp_totale = thousand_0(len(df))
+        st.metric("Opportunità", opp_totale)
+        
+        col6_1, col6_2, col6_3 = st.columns(3)
+        with col6_1:
+            opp_setting = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
+            st.metric("Setting - Da gestire", opp_setting)
+
+            opp_settingPersi = thousand_0(df[df['stage'].isin(leadPersi)].shape[0])
+            st.metric("Setting - Persi", opp_settingPersi)
+        with col6_2:
+            opp_vendite = thousand_0(df[df['stage'].isin(venditeGestione)].shape[0])
+            st.metric("Vendita - Da gestire", opp_vendite)
+
+            opp_venditeChiusura = thousand_0(df[df['stage'].isin(venditeChiusura)].shape[0])
+            st.metric("Vendita - Da chiudere", opp_venditeChiusura)
+        with col6_3:
+            opp_vinti = thousand_0(df[df['stage'].isin(vinti)].shape[0])
+            st.metric("Vendita - Da gestire", opp_vinti)
+
+            opp_persi = thousand_0(df[df['stage'].isin(persi)].shape[0])
+            st.metric("Vendita - Da chiudere", opp_persi)
+    with col7:
+        df_opportunities = df
+        date_range = pd.date_range(start=start_date, end=end_date)
+        df_opportunities['date'] = pd.to_datetime(df_opportunities['createdAt']).dt.date
+        date_counts = df_opportunities.groupby('date').size().reindex(date_range.date, fill_value=0)
+
+        df_opportunities_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
+        fig_opp = px.line(df_opportunities_graph, x='date', y='count', title='Opportunità generate', markers=True)
+        fig_opp.update_layout(
+            xaxis=dict(
+                tickformat='%d/%m/%Y'
+            ),
+            xaxis_title="Data",
+            yaxis_title="Numero di opportunità"
+        )
+        fig_opp.update_traces(line=dict(color='#b12b94'))
+        st.plotly_chart(fig_opp)
 
 # ------------------------------
 #             BODY
@@ -306,5 +368,13 @@ if st.button("Scarica i dati") & privacy:
 
     # Database
     # ------------------------------
-    conn = st.connection('mysql', type='sql')
-    stato_lead(conn, start_date, end_date)
+    conn = mysql.connector.connect(
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        user=st.secrets["username"],
+        password=st.secrets["password"],
+        database=st.secrets["database"],
+        auth_plugin='caching_sha2_password'
+    )
+
+    opportunities(conn, start_date, end_date)
