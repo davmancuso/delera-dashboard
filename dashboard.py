@@ -94,48 +94,101 @@ def api_retrieving(start_date, end_date):
 # Meta
 # ------------------------------
 @st.cache_data
-def meta_analysis(df):
+def meta_analysis(df, df_comp):
     st.title("Analisi delle campagne Meta")
-    st.warning("Formule errate, da verificare!")
 
-    r1_c1, r1_c2 = st.columns(2)
-    with r1_c1:
-        st.metric("Spesa totale", currency(df["spend"].sum()))
-    with r1_c2:
-        st.metric("Campagne attive", df["campaign"].nunique())
-    
-    r2_c1, r2_c2, r2_c3 = st.columns(3)
-    with r2_c1:
-        st.metric("Impression", thousand_0(df["impressions"].sum()))
-    with r2_c2:
-        st.metric("Frequenza", thousand_2(df["frequency"].mean()))
-    with r2_c3:
-        st.metric("CPM", currency(df["impressions"].sum() / df["spend"].sum()))
-    
-    r3_c1, r3_c2, r3_c3 = st.columns(3)
-    with r3_c1:
-        st.metric("Click", thousand_0(df["clicks"].sum()))
+    col1, col2 = st.columns(2)
+    with col1:
+        spesaTot_delta = (df["spend"].sum() - df_comp["spend"].sum()) / df_comp["spend"].sum() * 100
+        st.metric("Spesa totale", currency(df["spend"].sum()), percentage(spesaTot_delta))
+
+        col1_1, col1_2, col1_3 = st.columns(3)
+        with col1_1:
+            campagne_delta = (df["campaign"].nunique() - df_comp["campaign"].nunique()) / df_comp["campaign"].nunique() * 100
+            st.metric("Campagne attive", df["campaign"].nunique(), percentage(campagne_delta))
+
+            cpm_delta = (df["impressions"].sum() - df_comp["impressions"].sum()) / df_comp["impressions"].sum() * 100
+            st.metric("CPM", currency((df["impressions"].sum() / 10) / df["spend"].sum()), percentage(cpm_delta), delta_color="inverse")
+        with col1_2:
+            impression_delta = (df["impressions"].sum() - df_comp["impressions"].sum()) / df_comp["impressions"].sum() * 100
+            st.metric("Impression", thousand_0(df["impressions"].sum()), percentage(impression_delta))
+
+            ctr_delta = (((df["outbound_clicks_outbound_click"].sum() / df["impressions"].sum()) * 100) - ((df_comp["outbound_clicks_outbound_click"].sum() / df_comp["impressions"].sum()) * 100)) / ((df_comp["outbound_clicks_outbound_click"].sum() / df_comp["impressions"].sum()) * 100) * 100
+            st.metric("CTR", percentage((df["outbound_clicks_outbound_click"].sum() / df["impressions"].sum()) * 100), percentage(ctr_delta))
+        with col1_3:
+            click_delta = (df["outbound_clicks_outbound_click"].sum() - df_comp["outbound_clicks_outbound_click"].sum()) / df_comp["outbound_clicks_outbound_click"].sum() * 100
+            st.metric("Click", thousand_0(df["outbound_clicks_outbound_click"].sum()), percentage(click_delta))
+
+            cpc_delta = (df["outbound_clicks_outbound_click"].sum() / df["spend"].sum() - df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) / (df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) * 100
+            st.metric("CPC", currency(df["outbound_clicks_outbound_click"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
+    with col2:
+        st.write("Grafico")
 
 # Database
 # ------------------------------
 @st.cache_data(show_spinner=False)
+def pipeline_overview(_conn, end_date):
+    year = end_date.year
+
+    cursor = conn.cursor()
+    query = f"""
+                SELECT
+                    ops.name AS stage,
+                    ops.position AS Ordine,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 1 THEN 1 ELSE 0 END), 0) AS Gennaio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 2 THEN 1 ELSE 0 END), 0) AS Febbraio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 3 THEN 1 ELSE 0 END), 0) AS Marzo,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 4 THEN 1 ELSE 0 END), 0) AS Aprile,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 5 THEN 1 ELSE 0 END), 0) AS Maggio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 6 THEN 1 ELSE 0 END), 0) AS Giugno,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 7 THEN 1 ELSE 0 END), 0) AS Luglio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 8 THEN 1 ELSE 0 END), 0) AS Agosto,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 9 THEN 1 ELSE 0 END), 0) AS Settembre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 10 THEN 1 ELSE 0 END), 0) AS Ottobre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 11 THEN 1 ELSE 0 END), 0) AS Novembre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 12 THEN 1 ELSE 0 END), 0) AS Dicembre
+                FROM
+                    opportunity_pipeline_stages ops
+                    LEFT JOIN opportunities o ON o.pipelineStageId = ops.id
+                    AND o.locationId = '{st.secrets.id_cliente}'
+                    AND YEAR(o.createdAt) = {year}
+                WHERE
+                    ops.pipelineId = '{st.secrets.pipeline_vendita}'
+                GROUP BY
+                    ops.name,
+                    ops.position
+                ORDER BY
+                    ops.position;
+            """
+
+    cursor.execute(query)
+    df_raw = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    df = pd.DataFrame(df_raw, columns=cursor.column_names)
+    df.drop(columns=["Ordine"])
+    st.table(df)
+
+@st.cache_data(show_spinner=False)
 def opportunities(_conn, start_date, end_date):
     cursor = conn.cursor()
     query = f"""
-                        SELECT
-                            o.*,
-                            ops.name AS stage
-                        FROM
-                            opportunities o
-                        JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
-                        WHERE
-                            o.locationId='{st.secrets.id_cliente}'
-                            AND ops.pipelineId='CawDqiWkLR5Ht98b4Xgd'
-                            AND o.createdAt >= '{start_date}T00:00:00.000Z'
-                            AND o.createdAt <= '{end_date}T23:59:59.999Z'
-                        ORDER BY
-                            o.createdAt;
-                        """
+                SELECT
+                    o.*,
+                    ops.name AS stage
+                FROM
+                    opportunities o
+                JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
+                WHERE
+                    o.locationId='{st.secrets.id_cliente}'
+                    AND ops.pipelineId='{st.secrets.pipeline_vendita}'
+                    AND o.createdAt >= '{start_date}T00:00:00.000Z'
+                    AND o.createdAt <= '{end_date}T23:59:59.999Z'
+                ORDER BY
+                    o.createdAt;
+            """
 
     cursor.execute(query)
     df_raw = cursor.fetchall()
@@ -348,23 +401,56 @@ st.title("Parametri della analisi")
 st.subheader("Selezionare il periodo desiderato")
 col_date1, col_date2 = st.columns(2)
 with col_date1:
-    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=13)), format="DD/MM/YYYY")
+    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=14)), format="DD/MM/YYYY")
 with col_date2:
     end_date = st.date_input("Fine", (datetime.today() - timedelta(days=1)), format="DD/MM/YYYY")
 
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
 if st.button("Scarica i dati") & privacy:
-    df_raw = api_retrieving(start_date, end_date)
+    period = end_date - start_date + timedelta(days=1)
+
+    comparison_start = start_date - period
+    comparison_end = start_date -  timedelta(days=1)
+
+    df_raw = api_retrieving(comparison_start, end_date)
+    df_raw["date"] = pd.to_datetime(df_raw["date"]).dt.date
 
     # Meta
     # ------------------------------
-    df_meta = df_raw.loc[(df_raw["source"] == "facebook") & (df_raw["account_name"] == "Business 2021") & (~df_raw["campaign"].str.contains(r"\[HR\]"))]
-    # meta_analysis(df_meta)
+    df_meta = df_raw.loc[
+        (df_raw["source"] == "facebook") &
+        (df_raw["account_name"] == "Business 2021") &
+        (~df_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_raw["date"] >= start_date) &
+        (df_raw["date"] <= end_date)
+    ]
+    df_meta_comp = df_raw.loc[
+        (df_raw["source"] == "facebook") &
+        (df_raw["account_name"] == "Business 2021") &
+        (~df_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_raw["date"] >= comparison_start) &
+        (df_raw["date"] <= comparison_end)
+    ]
+
+    meta_analysis(df_meta, df_meta_comp)
 
     # Google
     # ------------------------------
-    df_google = df_raw.loc[(df_raw["source"] == "google") & (df_raw["account_name"] == "Delera")]
+    df_google = df_raw.loc[
+        (df_raw["source"] == "google") &
+        (df_raw["account_name"] == "Delera") &
+        (df_raw["date"] >= start_date) &
+        (df_raw["date"] <= end_date)
+    ]
+    df_google_comp = df_raw.loc[
+        (df_raw["source"] == "google") &
+        (df_raw["account_name"] == "Delera") &
+        (df_raw["date"] >= comparison_start) &
+        (df_raw["date"] <= comparison_end)
+    ]
 
     # Database
     # ------------------------------
@@ -377,4 +463,4 @@ if st.button("Scarica i dati") & privacy:
         auth_plugin='caching_sha2_password'
     )
 
-    opportunities(conn, start_date, end_date)
+    # opportunities(conn, start_date, end_date)
