@@ -122,7 +122,60 @@ def meta_analysis(df, df_comp):
             cpc_delta = (df["outbound_clicks_outbound_click"].sum() / df["spend"].sum() - df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) / (df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) * 100
             st.metric("CPC", currency(df["outbound_clicks_outbound_click"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
     with col2:
-        st.write("Grafico")
+        # df['date'] = pd.to_datetime(df['date']).dt.date
+        
+        # spesaGiorno = df.groupby('date')['spend'].sum().reset_index()
+
+        # fig_spend = px.line(spesaGiorno, x='date', y='spend', title='Spesa giornaliera delle campagne pubblicitarie', markers=True)
+        # fig_spend.update_layout(
+        #     xaxis=dict(
+        #         tickformat='%d/%m/%Y'
+        #     ),
+        #     xaxis_title="Data",
+        #     yaxis_title="Spesa (€)"
+        # )
+        # fig_spend.update_traces(line=dict(color='#b12b94'))
+        # st.plotly_chart(fig_spend)
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
+
+        df_comp['date'] = pd.to_datetime(df_comp['date']).dt.date
+        daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
+
+        daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
+        daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).apply(lambda x: x.days)
+
+        daily_spend_current['period'] = 'Periodo Corrente'
+        daily_spend_comp['period'] = 'Periodo Precedente'
+
+        combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
+
+        color_map = {
+            'Periodo Corrente': '#b12b94',
+            'Periodo Precedente': '#eb94d8'
+        }
+
+        hover_data = {
+            'period': True,
+            'date': '|%d/%m/%Y',
+            'spend': ':.2f',
+            'day': False
+        }
+
+        fig_spend = px.line(combined_spend, x='day', y='spend', color='period',
+                    title='Spesa giornaliera',
+                    markers=True,
+                    labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
+                    color_discrete_map=color_map,
+                    hover_data=hover_data)
+
+        fig_spend.update_traces(mode='lines+markers')
+        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+        fig_spend.update_traces(
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>'
+        )
+        
+        st.plotly_chart(fig_spend)
 
 # Database
 # ------------------------------
@@ -235,7 +288,8 @@ def opportunities(_conn, start_date, end_date):
                     'Preventivo Mandato / Follow Up']
 
     st.title("Stato dei lead")
-
+    st.warning("Modificare grafici & Aggiungere confronto con periodo precedente")
+    
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
@@ -371,10 +425,10 @@ def opportunities(_conn, start_date, end_date):
             st.metric("Vendita - Da chiudere", opp_venditeChiusura)
         with col6_3:
             opp_vinti = thousand_0(df[df['stage'].isin(vinti)].shape[0])
-            st.metric("Vendita - Da gestire", opp_vinti)
+            st.metric("Vinti", opp_vinti)
 
             opp_persi = thousand_0(df[df['stage'].isin(persi)].shape[0])
-            st.metric("Vendita - Da chiudere", opp_persi)
+            st.metric("Persi", opp_persi)
     with col7:
         df_opportunities = df
         date_range = pd.date_range(start=start_date, end=end_date)
@@ -463,4 +517,4 @@ if st.button("Scarica i dati") & privacy:
         auth_plugin='caching_sha2_password'
     )
 
-    # opportunities(conn, start_date, end_date)
+    opportunities(conn, start_date, end_date)
