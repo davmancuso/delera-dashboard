@@ -58,7 +58,7 @@ st.markdown("""
 # ------------------------------
 st.sidebar.title("Analisi dei dati")
 st.sidebar.subheader("Dati cliente")
-st.sidebar.text("Cliente: Alpha Group stl\nProgetto: Delera\nWebsite: delera.io")
+st.sidebar.text("Cliente: Alpha Group srl\nProgetto: Delera\nWebsite: delera.io")
 st.sidebar.subheader("Dati agenzia")
 st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
 
@@ -68,32 +68,54 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nM
 
 # Globali
 # ------------------------------
-@st.cache_data
 def currency(value):
     return "€ {:,.2f}".format(value)
 
-@st.cache_data
 def percentage(value):
     return "{:,.2f}%".format(value)
 
-@st.cache_data
 def thousand_0(value):
     return "{:,.0f}".format(value)
 
-@st.cache_data
 def thousand_2(value):
     return "{:,.2f}".format(value)
 
-@st.cache_data(show_spinner=False)
+# Data retrieving
+# ------------------------------
 def api_retrieving(start_date, end_date):
     url = st.secrets.source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
 
+def opp_retrieving(conn, start_date, end_date):
+    cursor = conn.cursor()
+    query = f"""
+                SELECT
+                    o.*,
+                    ops.name AS stage
+                FROM
+                    opportunities o
+                JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
+                WHERE
+                    o.locationId='{st.secrets.id_cliente}'
+                    AND ops.pipelineId='{st.secrets.pipeline_vendita}'
+                    AND o.createdAt >= '{start_date}T00:00:00.000Z'
+                    AND o.createdAt <= '{end_date}T23:59:59.999Z'
+                ORDER BY
+                    o.createdAt;
+            """
+
+    cursor.execute(query)
+    df_raw = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return pd.DataFrame(df_raw, columns=cursor.column_names)
+
 # Meta
 # ------------------------------
-@st.cache_data
 def meta_analysis(df, df_comp):
     st.title("Analisi delle campagne Meta")
 
@@ -107,8 +129,8 @@ def meta_analysis(df, df_comp):
             campagne_delta = (df["campaign"].nunique() - df_comp["campaign"].nunique()) / df_comp["campaign"].nunique() * 100
             st.metric("Campagne attive", df["campaign"].nunique(), percentage(campagne_delta))
 
-            cpm_delta = (df["impressions"].sum() - df_comp["impressions"].sum()) / df_comp["impressions"].sum() * 100
-            st.metric("CPM", currency((df["impressions"].sum() / 10) / df["spend"].sum()), percentage(cpm_delta), delta_color="inverse")
+            cpm_delta = ((df["spend"].sum() / df["impressions"].sum() * 1000) - (df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000)) / (df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000) * 100
+            st.metric("CPM", currency(df["spend"].sum() / df["impressions"].sum() * 1000), percentage(cpm_delta), delta_color="inverse")
         with col1_2:
             impression_delta = (df["impressions"].sum() - df_comp["impressions"].sum()) / df_comp["impressions"].sum() * 100
             st.metric("Impression", thousand_0(df["impressions"].sum()), percentage(impression_delta))
@@ -122,20 +144,6 @@ def meta_analysis(df, df_comp):
             cpc_delta = (df["outbound_clicks_outbound_click"].sum() / df["spend"].sum() - df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) / (df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) * 100
             st.metric("CPC", currency(df["outbound_clicks_outbound_click"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
     with col2:
-        # df['date'] = pd.to_datetime(df['date']).dt.date
-        
-        # spesaGiorno = df.groupby('date')['spend'].sum().reset_index()
-
-        # fig_spend = px.line(spesaGiorno, x='date', y='spend', title='Spesa giornaliera delle campagne pubblicitarie', markers=True)
-        # fig_spend.update_layout(
-        #     xaxis=dict(
-        #         tickformat='%d/%m/%Y'
-        #     ),
-        #     xaxis_title="Data",
-        #     yaxis_title="Spesa (€)"
-        # )
-        # fig_spend.update_traces(line=dict(color='#b12b94'))
-        # st.plotly_chart(fig_spend)
         df['date'] = pd.to_datetime(df['date']).dt.date
         daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
 
@@ -174,12 +182,148 @@ def meta_analysis(df, df_comp):
         fig_spend.update_traces(
             hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>'
         )
+        fig_spend.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.4,
+                xanchor="center",
+                x=0.5
+            )
+        )
         
         st.plotly_chart(fig_spend)
+    
+    st.title("Dettaglio delle campagne")
+
+    dettaglioCampagne = df.groupby('campaign').agg({
+        'spend': 'sum',
+        'impressions': 'sum',
+        'outbound_clicks_outbound_click': 'sum'
+    }).reset_index()
+
+    dettaglioCampagne.rename(columns={
+        'campaign': 'Campagna',
+        'spend': 'Spesa',
+        'impressions': 'Impression',
+        'outbound_clicks_outbound_click': 'Click'
+    }, inplace=True)
+
+    dettaglioCampagne['CTR'] = dettaglioCampagne['Click'] / dettaglioCampagne['Impression']
+    dettaglioCampagne['CPC'] = dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']
+
+    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].map('€ {:,.2f}'.format)
+    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].map('{:.2%}'.format)
+    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].map('€ {:,.2f}'.format)
+
+    st.dataframe(dettaglioCampagne)
+
+# Google
+# ------------------------------
+def google_analysis(df, df_comp):
+    st.title("Analisi delle campagne Google")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        spesaTot_delta = (df["spend"].sum() - df_comp["spend"].sum()) / df_comp["spend"].sum() * 100
+        st.metric("Spesa totale", currency(df["spend"].sum()), percentage(spesaTot_delta))
+
+        col1_1, col1_2, col1_3 = st.columns(3)
+        with col1_1:
+            campagne_delta = (df["campaign"].nunique() - df_comp["campaign"].nunique()) / df_comp["campaign"].nunique() * 100
+            st.metric("Campagne attive", df["campaign"].nunique(), percentage(campagne_delta))
+
+            cpm_delta = ((df["spend"].sum() / df["impressions"].sum() * 1000) - (df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000)) / (df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000) * 100
+            st.metric("CPM", currency(df["spend"].sum() / df["impressions"].sum() * 1000), percentage(cpm_delta), delta_color="inverse")
+        with col1_2:
+            impression_delta = (df["impressions"].sum() - df_comp["impressions"].sum()) / df_comp["impressions"].sum() * 100
+            st.metric("Impression", thousand_0(df["impressions"].sum()), percentage(impression_delta))
+
+            ctr_delta = (((df["clicks"].sum() / df["impressions"].sum()) * 100) - ((df_comp["clicks"].sum() / df_comp["impressions"].sum()) * 100)) / ((df_comp["clicks"].sum() / df_comp["impressions"].sum()) * 100) * 100
+            st.metric("CTR", percentage((df["clicks"].sum() / df["impressions"].sum()) * 100), percentage(ctr_delta))
+        with col1_3:
+            click_delta = (df["clicks"].sum() - df_comp["clicks"].sum()) / df_comp["clicks"].sum() * 100
+            st.metric("Click", thousand_0(df["clicks"].sum()), percentage(click_delta))
+
+            cpc_delta = (df["clicks"].sum() / df["spend"].sum() - df_comp["clicks"].sum() / df_comp["spend"].sum()) / (df_comp["clicks"].sum() / df_comp["spend"].sum()) * 100
+            st.metric("CPC", currency(df["clicks"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
+    with col2:
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
+
+        df_comp['date'] = pd.to_datetime(df_comp['date']).dt.date
+        daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
+
+        daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
+        daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).apply(lambda x: x.days)
+
+        daily_spend_current['period'] = 'Periodo Corrente'
+        daily_spend_comp['period'] = 'Periodo Precedente'
+
+        combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
+
+        color_map = {
+            'Periodo Corrente': '#b12b94',
+            'Periodo Precedente': '#eb94d8'
+        }
+
+        hover_data = {
+            'period': True,
+            'date': '|%d/%m/%Y',
+            'spend': ':.2f',
+            'day': False
+        }
+
+        fig_spend = px.line(combined_spend, x='day', y='spend', color='period',
+                    title='Spesa giornaliera',
+                    markers=True,
+                    labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
+                    color_discrete_map=color_map,
+                    hover_data=hover_data)
+
+        fig_spend.update_traces(mode='lines+markers')
+        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+        fig_spend.update_traces(
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>'
+        )
+        fig_spend.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.4,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        
+        st.plotly_chart(fig_spend)
+    
+    st.title("Dettaglio delle campagne")
+
+    dettaglioCampagne = df.groupby('campaign').agg({
+        'spend': 'sum',
+        'impressions': 'sum',
+        'clicks': 'sum'
+    }).reset_index()
+
+    dettaglioCampagne.rename(columns={
+        'campaign': 'Campagna',
+        'spend': 'Spesa',
+        'impressions': 'Impression',
+        'clicks': 'Click'
+    }, inplace=True)
+
+    dettaglioCampagne['CTR'] = dettaglioCampagne['Click'] / dettaglioCampagne['Impression']
+    dettaglioCampagne['CPC'] = dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']
+
+    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].map('€ {:,.2f}'.format)
+    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].map('{:.2%}'.format)
+    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].map('€ {:,.2f}'.format)
+
+    st.dataframe(dettaglioCampagne)
 
 # Database
 # ------------------------------
-@st.cache_data(show_spinner=False)
 def pipeline_overview(_conn, end_date):
     year = end_date.year
 
@@ -224,33 +368,7 @@ def pipeline_overview(_conn, end_date):
     df.drop(columns=["Ordine"])
     st.table(df)
 
-@st.cache_data(show_spinner=False)
-def opportunities(_conn, start_date, end_date):
-    cursor = conn.cursor()
-    query = f"""
-                SELECT
-                    o.*,
-                    ops.name AS stage
-                FROM
-                    opportunities o
-                JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
-                WHERE
-                    o.locationId='{st.secrets.id_cliente}'
-                    AND ops.pipelineId='{st.secrets.pipeline_vendita}'
-                    AND o.createdAt >= '{start_date}T00:00:00.000Z'
-                    AND o.createdAt <= '{end_date}T23:59:59.999Z'
-                ORDER BY
-                    o.createdAt;
-            """
-
-    cursor.execute(query)
-    df_raw = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    df = pd.DataFrame(df_raw, columns=cursor.column_names)
-
+def opportunities(df, df_comp):
     daQualificare = ['Nuova Opportunità',
                     'Prova Gratuita',
                     'Senza risposta',
@@ -288,61 +406,102 @@ def opportunities(_conn, start_date, end_date):
                     'Preventivo Mandato / Follow Up']
 
     st.title("Stato dei lead")
-    st.warning("Modificare grafici & Aggiungere confronto con periodo precedente")
-    
+
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
-        <hr style="height:0px;border-width: 0px;;margin-top:5px;">
-        """, unsafe_allow_html=True)
-
-        lead_daQualificare = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
-        st.metric("Lead da qualificare", lead_daQualificare)
+        leadDaQualificare_delta = (df[df['stage'].isin(daQualificare)].shape[0] - df_comp[df_comp['stage'].isin(daQualificare)].shape[0]) / df_comp[df_comp['stage'].isin(daQualificare)].shape[0] * 100
+        st.metric("Lead da qualificare", df[df['stage'].isin(daQualificare)].shape[0], percentage(leadDaQualificare_delta))
         
         col1_1, col1_2, col1_3 = st.columns(3)
         with col1_1:
-            lead_qualificati= thousand_0(df[df['stage'].isin(qualificati)].shape[0])
-            st.metric("Lead qualificati", lead_qualificati)
+            leadQualificati_delta = (df[df['stage'].isin(qualificati)].shape[0] - df_comp[df_comp['stage'].isin(qualificati)].shape[0]) / df_comp[df_comp['stage'].isin(qualificati)].shape[0] * 100
+            st.metric("Lead qualificati", df[df['stage'].isin(qualificati)].shape[0], percentage(leadQualificati_delta))
 
-            lead_vinti= thousand_0(df[df['stage'].isin(vinti)].shape[0])
-            st.metric("Vendite", lead_vinti)
+            leadVinti_delta = (df[df['stage'].isin(vinti)].shape[0] - df_comp[df_comp['stage'].isin(vinti)].shape[0]) / df_comp[df_comp['stage'].isin(vinti)].shape[0] * 100
+            st.metric("Vendite", df[df['stage'].isin(vinti)].shape[0], percentage(leadVinti_delta))
         with col1_2:
-            lead_qualificatiPerGiorno = thousand_2(df[df['stage'].isin(qualificati)].shape[0]/((end_date - start_date).days))
-            st.metric("Lead qualificati al giorno", lead_qualificatiPerGiorno)
+            leadQualificatiGiorno_delta = ((df[df['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days) - (df_comp[df_comp['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days)) / (df_comp[df_comp['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days) * 100
+            st.metric("Lead qualificati al giorno", thousand_2(df[df['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days), percentage(leadQualificatiGiorno_delta))
 
-            lead_vintiPerGiorno = thousand_2(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))
-            st.metric("Vendite al giorno", lead_vintiPerGiorno)
+            vintiPerGiorno_delta = ((df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days)) - (df_comp[df_comp['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))) / (df_comp[df_comp['stage'].isin(vinti)].shape[0]/((end_date - start_date).days)) * 100
+            st.metric("Vendite al giorno", thousand_2(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days)), percentage(vintiPerGiorno_delta))
         with col1_3:
-            lead_tassoQualifica = percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0]))
-            st.metric("Tasso di qualifica", lead_tassoQualifica)
+            tassoQualifica_delta = ((df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0])) - (df_comp[df_comp['stage'].isin(qualificati)].shape[0]/(len(df_comp)-df_comp[df_comp['stage'].isin(daQualificare)].shape[0]))) / (df_comp[df_comp['stage'].isin(qualificati)].shape[0]/(len(df_comp)-df_comp[df_comp['stage'].isin(daQualificare)].shape[0])) * 100
+            st.metric("Tasso di qualifica", percentage(df[df['stage'].isin(qualificati)].shape[0]/(len(df)-df[df['stage'].isin(daQualificare)].shape[0])), percentage(tassoQualifica_delta))
 
-            lead_tassoVendita = percentage(df[df['stage'].isin(vinti)].shape[0]/df[df['stage'].isin(qualificati)].shape[0])
-            st.metric("Tasso di vendita", lead_tassoVendita)
+            tassoVendita_delta = ((df[df['stage'].isin(vinti)].shape[0]/df[df['stage'].isin(qualificati)].shape[0]) - (df_comp[df_comp['stage'].isin(vinti)].shape[0]/df_comp[df_comp['stage'].isin(qualificati)].shape[0])) / (df_comp[df_comp['stage'].isin(vinti)].shape[0]/df_comp[df_comp['stage'].isin(qualificati)].shape[0]) * 100
+            st.metric("Tasso di vendita", percentage(df[df['stage'].isin(vinti)].shape[0]/df[df['stage'].isin(qualificati)].shape[0]), percentage(tassoVendita_delta))
     with col2:
         df_qualificati = df[df['stage'].isin(qualificati)]
+        df_qualificati_comp = df_comp[df_comp['stage'].isin(qualificati)]
 
-        date_range = pd.date_range(start=start_date, end=end_date)
-        df_qualificati['date'] = pd.to_datetime(df_qualificati['createdAt']).dt.date
-        date_counts = df_qualificati.groupby('date').size().reindex(date_range.date, fill_value=0)
+        df_qualificati['createdAt'] = pd.to_datetime(df_qualificati['createdAt']).dt.date
+        df_qualificati_comp['createdAt'] = pd.to_datetime(df_qualificati_comp['createdAt']).dt.date
 
-        df_qualificati_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
-        fig_lq = px.line(df_qualificati_graph, x='date', y='count', title='Conteggio giornaliero dei lead qualificati', markers=True)
-        fig_lq.update_layout(
-            xaxis=dict(
-                tickformat='%d/%m/%Y'
-            ),
-            xaxis_title="Data",
-            yaxis_title="Numero di Lead Qualificati"
+        date_range_current = pd.date_range(start=df_qualificati['createdAt'].min(), end=df_qualificati['createdAt'].max())
+        date_range_comp = pd.date_range(start=df_qualificati_comp['createdAt'].min(), end=df_qualificati_comp['createdAt'].max())
+
+        daily_qualificati = df_qualificati.groupby('createdAt').size().reset_index(name='count')
+        daily_qualificati = daily_qualificati.set_index('createdAt').reindex(date_range_current, fill_value=0).reset_index()
+        daily_qualificati.rename(columns={'index': 'createdAt'}, inplace=True)
+
+        daily_qualificati_comp = df_qualificati_comp.groupby('createdAt').size().reset_index(name='count')
+        daily_qualificati_comp = daily_qualificati_comp.set_index('createdAt').reindex(date_range_comp, fill_value=0).reset_index()
+        daily_qualificati_comp.rename(columns={'index': 'createdAt'}, inplace=True)
+
+        daily_qualificati['day'] = (daily_qualificati['createdAt'] - daily_qualificati['createdAt'].min()).apply(lambda x: x.days)
+        daily_qualificati_comp['day'] = (daily_qualificati_comp['createdAt'] - daily_qualificati_comp['createdAt'].min()).apply(lambda x: x.days)
+
+        daily_qualificati['period'] = 'Periodo Corrente'
+        daily_qualificati_comp['period'] = 'Periodo Precedente'
+
+        combined_daily_qualificati = pd.concat([daily_qualificati_comp, daily_qualificati])
+
+        color_map = {
+            'Periodo Corrente': '#b12b94',
+            'Periodo Precedente': '#eb94d8'
+        }
+
+        hover_data = {
+            'period': True,
+            'createdAt': '|%d/%m/%Y',
+            'count': ':.2f',
+            'day': False
+        }
+
+        fig_qualificati = px.line(combined_daily_qualificati, x='day', y='count', color='period',
+                                title='Lead qualificati per giorno',
+                                markers=True,
+                                labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
+                                color_discrete_map=color_map,
+                                hover_data=hover_data)
+
+        fig_qualificati.update_traces(mode='lines+markers')
+        fig_qualificati.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+        fig_qualificati.update_traces(
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Lead: %{y:.2f}<extra></extra>'
         )
-        fig_lq.update_traces(line=dict(color='#b12b94'))
-        st.plotly_chart(fig_lq)
+        fig_qualificati.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.4,
+                xanchor="center",
+                x=0.5
+            )
+        )
+
+        st.plotly_chart(fig_qualificati)
 
     col3, col4, col5 = st.columns(3)
     with col3:
+        deltaColor_lqperday = "green" if vintiPerGiorno_delta >= 0 else "red"
+
         fig_lqperday = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=float(lead_qualificatiPerGiorno)/12*100,
+            mode="gauge+number+delta",
+            value=float(df[df['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days)/12*100,
             number={'suffix': "%"},
+            delta={'reference': leadQualificatiGiorno_delta, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'increasing': {'color': deltaColor_lqperday}, 'decreasing': {'color': deltaColor_lqperday}, 'font': {'size': 16}},
             title={'text': "Lead qualificati al giorno: 12"},
             gauge={
                 'axis': {'range': [0, 100]},
@@ -362,10 +521,13 @@ def opportunities(_conn, start_date, end_date):
         ))
         st.plotly_chart(fig_lqperday)
     with col4:
-        fig_lqperday = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=float(lead_vintiPerGiorno)/3*100,
+        deltaColor_vintiperday = "green" if vintiPerGiorno_delta >= 0 else "red"
+
+        fig_vintiperday = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=float(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))/3*100,
             number={'suffix': "%"},
+            delta={'reference': vintiPerGiorno_delta, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'increasing': {'color': deltaColor_vintiperday}, 'decreasing': {'color': deltaColor_vintiperday}, 'font': {'size': 16}},
             title={'text': "Vendite al giorno: 3"},
             gauge={
                 'axis': {'range': [0, 100]},
@@ -383,7 +545,7 @@ def opportunities(_conn, start_date, end_date):
                 }
             }
         ))
-        st.plotly_chart(fig_lqperday)
+        st.plotly_chart(fig_vintiperday)
     with col5:
         st.markdown("""
         <hr style="height:0px;border-width: 0px;;margin-top:35px;">
@@ -403,48 +565,80 @@ def opportunities(_conn, start_date, end_date):
 
     col6, col7 = st.columns(2)
     with col6:
-        st.markdown("""
-        <hr style="height:0px;border-width: 0px;;margin-top:5px;">
-        """, unsafe_allow_html=True)
-
-        opp_totale = thousand_0(len(df))
-        st.metric("Opportunità", opp_totale)
+        opp_delta = (len(df) - len(df_comp)) / len(df_comp) * 100
+        st.metric("Opportunità", len(df), percentage(opp_delta))
         
         col6_1, col6_2, col6_3 = st.columns(3)
         with col6_1:
-            opp_setting = thousand_0(df[df['stage'].isin(daQualificare)].shape[0])
-            st.metric("Setting - Da gestire", opp_setting)
+            setting_delta = (df[df['stage'].isin(daQualificare)].shape[0] - df_comp[df_comp['stage'].isin(daQualificare)].shape[0]) / df_comp[df_comp['stage'].isin(daQualificare)].shape[0] * 100
+            st.metric("Setting - Da gestire", thousand_0(df[df['stage'].isin(daQualificare)].shape[0]), percentage(setting_delta))
 
-            opp_settingPersi = thousand_0(df[df['stage'].isin(leadPersi)].shape[0])
-            st.metric("Setting - Persi", opp_settingPersi)
+            settingPersi_delta = (df[df['stage'].isin(leadPersi)].shape[0] - df_comp[df_comp['stage'].isin(leadPersi)].shape[0]) / df_comp[df_comp['stage'].isin(leadPersi)].shape[0] * 100
+            st.metric("Setting - Persi", thousand_0(df[df['stage'].isin(leadPersi)].shape[0]), percentage(settingPersi_delta))
         with col6_2:
-            opp_vendite = thousand_0(df[df['stage'].isin(venditeGestione)].shape[0])
-            st.metric("Vendita - Da gestire", opp_vendite)
+            vendite_delta = (df[df['stage'].isin(venditeGestione)].shape[0] - df_comp[df_comp['stage'].isin(venditeGestione)].shape[0]) / df_comp[df_comp['stage'].isin(venditeGestione)].shape[0] * 100
+            st.metric("Vendita - Da gestire", thousand_0(df[df['stage'].isin(venditeGestione)].shape[0]), percentage(vendite_delta))
 
-            opp_venditeChiusura = thousand_0(df[df['stage'].isin(venditeChiusura)].shape[0])
-            st.metric("Vendita - Da chiudere", opp_venditeChiusura)
+            chiusura_delta = (df[df['stage'].isin(venditeChiusura)].shape[0] - df_comp[df_comp['stage'].isin(venditeChiusura)].shape[0]) / df_comp[df_comp['stage'].isin(venditeChiusura)].shape[0] * 100
+            st.metric("Vendita - Da chiudere", thousand_0(df[df['stage'].isin(venditeChiusura)].shape[0]), percentage(chiusura_delta))
         with col6_3:
-            opp_vinti = thousand_0(df[df['stage'].isin(vinti)].shape[0])
-            st.metric("Vinti", opp_vinti)
+            vinti_delta = (df[df['stage'].isin(vinti)].shape[0] - df_comp[df_comp['stage'].isin(vinti)].shape[0]) / df_comp[df_comp['stage'].isin(vinti)].shape[0] * 100
+            st.metric("Vinti", thousand_0(df[df['stage'].isin(vinti)].shape[0]), percentage(vinti_delta))
 
-            opp_persi = thousand_0(df[df['stage'].isin(persi)].shape[0])
-            st.metric("Persi", opp_persi)
+            persi_delta = (df[df['stage'].isin(persi)].shape[0] - df_comp[df_comp['stage'].isin(persi)].shape[0]) / df_comp[df_comp['stage'].isin(persi)].shape[0] * 100
+            st.metric("Persi", thousand_0(df[df['stage'].isin(persi)].shape[0]), percentage(persi_delta))
     with col7:
-        df_opportunities = df
-        date_range = pd.date_range(start=start_date, end=end_date)
-        df_opportunities['date'] = pd.to_datetime(df_opportunities['createdAt']).dt.date
-        date_counts = df_opportunities.groupby('date').size().reindex(date_range.date, fill_value=0)
+        df_opp = df
+        df_opp_comp = df_comp
 
-        df_opportunities_graph = pd.DataFrame({'date': date_range.date, 'count': date_counts.values})
-        fig_opp = px.line(df_opportunities_graph, x='date', y='count', title='Opportunità generate', markers=True)
-        fig_opp.update_layout(
-            xaxis=dict(
-                tickformat='%d/%m/%Y'
-            ),
-            xaxis_title="Data",
-            yaxis_title="Numero di opportunità"
+        df_opp['createdAt'] = pd.to_datetime(df_opp['createdAt']).dt.date
+        df_opp_comp['createdAt'] = pd.to_datetime(df_opp_comp['createdAt']).dt.date
+
+        daily_opp = df_opp.groupby('createdAt').size().reset_index(name='count')
+        daily_opp_comp = df_opp_comp.groupby('createdAt').size().reset_index(name='count')
+
+        daily_opp['day'] = (daily_opp['createdAt'] - daily_opp['createdAt'].min()).apply(lambda x: x.days)
+        daily_opp_comp['day'] = (daily_opp_comp['createdAt'] - daily_opp_comp['createdAt'].min()).apply(lambda x: x.days)
+
+        daily_opp['period'] = 'Periodo Corrente'
+        daily_opp_comp['period'] = 'Periodo Precedente'
+
+        combined_daily_opp = pd.concat([daily_opp_comp, daily_opp])
+
+        color_map_opp = {
+            'Periodo Corrente': '#b12b94',
+            'Periodo Precedente': '#eb94d8'
+        }
+
+        hover_data_opp = {
+            'period': True,
+            'createdAt': '|%d/%m/%Y',
+            'count': ':.2f',
+            'day': False
+        }
+
+        fig_opp = px.line(combined_daily_opp, x='day', y='count', color='period',
+                                title='Opportunità per giorno',
+                                markers=True,
+                                labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
+                                color_discrete_map=color_map_opp,
+                                hover_data=hover_data_opp)
+
+        fig_opp.update_traces(mode='lines+markers')
+        fig_opp.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+        fig_opp.update_traces(
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Lead: %{y:.2f}<extra></extra>'
         )
-        fig_opp.update_traces(line=dict(color='#b12b94'))
+        fig_opp.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.4,
+                xanchor="center",
+                x=0.5
+            )
+        )
+
         st.plotly_chart(fig_opp)
 
 # ------------------------------
@@ -462,49 +656,55 @@ with col_date2:
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
 if st.button("Scarica i dati") & privacy:
+    st.cache_data.clear()
+
     period = end_date - start_date + timedelta(days=1)
 
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
-    df_raw = api_retrieving(comparison_start, end_date)
-    df_raw["date"] = pd.to_datetime(df_raw["date"]).dt.date
+    df_adv_raw = api_retrieving(comparison_start, end_date)
+    df_adv_raw["date"] = pd.to_datetime(df_adv_raw["date"]).dt.date
 
     # Meta
     # ------------------------------
-    df_meta = df_raw.loc[
-        (df_raw["source"] == "facebook") &
-        (df_raw["account_name"] == "Business 2021") &
-        (~df_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_raw["campaign"].str.contains(r"DENTALAI")) &
-        (df_raw["date"] >= start_date) &
-        (df_raw["date"] <= end_date)
+    df_meta = df_adv_raw.loc[
+        (df_adv_raw["source"] == "facebook") &
+        (df_adv_raw["account_name"] == "Business 2021") &
+        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_adv_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_adv_raw["date"] >= start_date) &
+        (df_adv_raw["date"] <= end_date)
     ]
-    df_meta_comp = df_raw.loc[
-        (df_raw["source"] == "facebook") &
-        (df_raw["account_name"] == "Business 2021") &
-        (~df_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_raw["campaign"].str.contains(r"DENTALAI")) &
-        (df_raw["date"] >= comparison_start) &
-        (df_raw["date"] <= comparison_end)
+
+    df_meta_comp = df_adv_raw.loc[
+        (df_adv_raw["source"] == "facebook") &
+        (df_adv_raw["account_name"] == "Business 2021") &
+        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_adv_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_adv_raw["date"] >= comparison_start) &
+        (df_adv_raw["date"] <= comparison_end)
     ]
 
     meta_analysis(df_meta, df_meta_comp)
 
     # Google
     # ------------------------------
-    df_google = df_raw.loc[
-        (df_raw["source"] == "google") &
-        (df_raw["account_name"] == "Delera") &
-        (df_raw["date"] >= start_date) &
-        (df_raw["date"] <= end_date)
+    df_google = df_adv_raw.loc[
+        (df_adv_raw["source"] == "google") &
+        (df_adv_raw["account_name"] == "Delera") &
+        (df_adv_raw["date"] >= start_date) &
+        (df_adv_raw["date"] <= end_date)
     ]
-    df_google_comp = df_raw.loc[
-        (df_raw["source"] == "google") &
-        (df_raw["account_name"] == "Delera") &
-        (df_raw["date"] >= comparison_start) &
-        (df_raw["date"] <= comparison_end)
+
+    df_google_comp = df_adv_raw.loc[
+        (df_adv_raw["source"] == "google") &
+        (df_adv_raw["account_name"] == "Delera") &
+        (df_adv_raw["date"] >= comparison_start) &
+        (df_adv_raw["date"] <= comparison_end)
     ]
+
+    google_analysis(df_google, df_google_comp)
 
     # Database
     # ------------------------------
@@ -517,4 +717,17 @@ if st.button("Scarica i dati") & privacy:
         auth_plugin='caching_sha2_password'
     )
 
-    opportunities(conn, start_date, end_date)
+    df_opp_raw = opp_retrieving(conn, comparison_start, end_date)
+    df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
+
+    df_opp = df_opp_raw.loc[
+        (df_opp_raw["createdAt"] >= start_date) &
+        (df_opp_raw["createdAt"] <= end_date)
+    ]
+
+    df_opp_comp = df_opp_raw.loc[
+        (df_opp_raw["createdAt"] >= comparison_start) &
+        (df_opp_raw["createdAt"] <= comparison_end)
+    ]
+
+    opportunities(df_opp, df_opp_comp)
