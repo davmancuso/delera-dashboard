@@ -670,20 +670,20 @@ if st.button("Scarica i dati") & privacy:
     # ------------------------------
     df_meta = df_adv_raw.loc[
         (df_adv_raw["source"] == "facebook") &
-        (df_adv_raw["account_name"] == "Business 2021") &
-        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_adv_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_adv_raw["account_name"] == st.secrets["meta_account"]) &
         (df_adv_raw["date"] >= start_date) &
-        (df_adv_raw["date"] <= end_date)
+        (df_adv_raw["date"] <= end_date) &
+        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_adv_raw["campaign"].str.contains(r"DENTALAI"))
     ]
 
     df_meta_comp = df_adv_raw.loc[
         (df_adv_raw["source"] == "facebook") &
-        (df_adv_raw["account_name"] == "Business 2021") &
-        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_adv_raw["campaign"].str.contains(r"DENTALAI")) &
+        (df_adv_raw["account_name"] == st.secrets["meta_account"]) &
         (df_adv_raw["date"] >= comparison_start) &
-        (df_adv_raw["date"] <= comparison_end)
+        (df_adv_raw["date"] <= comparison_end) &
+        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_adv_raw["campaign"].str.contains(r"DENTALAI"))
     ]
 
     meta_analysis(df_meta, df_meta_comp)
@@ -692,14 +692,14 @@ if st.button("Scarica i dati") & privacy:
     # ------------------------------
     df_google = df_adv_raw.loc[
         (df_adv_raw["source"] == "google") &
-        (df_adv_raw["account_name"] == "Delera") &
+        (df_adv_raw["account_name"] == st.secrets["google_account"]) &
         (df_adv_raw["date"] >= start_date) &
         (df_adv_raw["date"] <= end_date)
     ]
 
     df_google_comp = df_adv_raw.loc[
         (df_adv_raw["source"] == "google") &
-        (df_adv_raw["account_name"] == "Delera") &
+        (df_adv_raw["account_name"] == st.secrets["google_account"]) &
         (df_adv_raw["date"] >= comparison_start) &
         (df_adv_raw["date"] <= comparison_end)
     ]
