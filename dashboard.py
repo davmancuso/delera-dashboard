@@ -328,6 +328,7 @@ def google_analysis(df, df_comp):
 # Database
 # ------------------------------
 def opportunities(df, df_comp):
+    stages = ['Nuova Opportunità', 'Prova Gratuita', 'Numero Non corretto flusso di email marketing', 'Senza risposta', 'Fuori target', 'App Tel Fissato', 'Risposto/Da richiamare', 'Lead Perso (10 tentativi non risp)', 'Autonomo - Call Onboarding', 'Call onboarding', 'Cancellati - Da riprogrammare', 'No Show - Ghost', 'Non Pronto (in target)', 'Seconda call / demo', 'Preventivo Mandato / Follow Up', 'Vinto Abbonamento Mensile', 'Vinto Abbonamento Annuale', 'Vinto mensile con acc.impresa', 'Vinto annuale con acc.impresa', 'Vinti generici', 'Ag.marketing/collaborazioni', 'Cliente Non vinto']
     daQualificare = ['Nuova Opportunità',
                     'Prova Gratuita',
                     'Senza risposta',
@@ -600,47 +601,22 @@ def opportunities(df, df_comp):
 
         st.plotly_chart(fig_opp)
 
-def opp_fullView(pool, start_date, end_date):
-    conn = pool.get_connection()
-    cursor = conn.cursor()
-    query = f"""
-                SELECT
-                    ops.name AS stage,
-                    ops.position AS Ordine,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 1 THEN 1 ELSE 0 END), 0) AS Gennaio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 2 THEN 1 ELSE 0 END), 0) AS Febbraio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 3 THEN 1 ELSE 0 END), 0) AS Marzo,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 4 THEN 1 ELSE 0 END), 0) AS Aprile,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 5 THEN 1 ELSE 0 END), 0) AS Maggio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 6 THEN 1 ELSE 0 END), 0) AS Giugno,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 7 THEN 1 ELSE 0 END), 0) AS Luglio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 8 THEN 1 ELSE 0 END), 0) AS Agosto,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 9 THEN 1 ELSE 0 END), 0) AS Settembre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 10 THEN 1 ELSE 0 END), 0) AS Ottobre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 11 THEN 1 ELSE 0 END), 0) AS Novembre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 12 THEN 1 ELSE 0 END), 0) AS Dicembre
-                FROM
-                    opportunity_pipeline_stages ops
-                    LEFT JOIN opportunities o ON o.pipelineStageId = ops.id
-                    AND o.locationId = '{st.secrets.id_cliente}'
-                    AND YEAR(o.createdAt) IN ({start_date.year}, {end_date.year})
-                WHERE
-                    ops.pipelineId = '{st.secrets.pipeline_vendita}'
-                GROUP BY
-                    ops.name,
-                    ops.position
-                ORDER BY
-                    ops.position;
-            """
+    st.title("Dettaglio degli stage di pipeline")
 
-    cursor.execute(query)
-    df = cursor.fetchall()
+    df['createdAt'] = pd.to_datetime(df['createdAt'])
+    df['year_month'] = df['createdAt'].dt.to_period('M')
 
-    cursor.close()
-    conn.close()
+    pivot = df.pivot_table(index='stage', columns='year_month', aggfunc='size', fill_value=0)
+    pivot = pivot.reindex(stages).fillna(0)
+    pivot.columns = pivot.columns.astype(str)
+    pivot['Totale stage'] = pivot.sum(axis=1)
 
-    st.title(f"Visione completa della pipeline: {start_date.year} - {end_date.year}")
-    st.dataframe(df)
+    total_month = pd.DataFrame(pivot.sum(axis=0)).T
+    total_month.index = ['Totale mese']
+
+    df_stageCount = pd.concat([pivot, total_month])
+    df_stageCount = df_stageCount.reset_index().rename(columns={'index': 'Stage'})
+    st.dataframe(df_stageCount)
 
 # ------------------------------
 #             BODY
@@ -743,5 +719,3 @@ if st.button("Scarica i dati") & privacy:
     ]
 
     opportunities(df_opp, df_opp_comp)
-
-    opp_fullView(pool, start_date, end_date)
