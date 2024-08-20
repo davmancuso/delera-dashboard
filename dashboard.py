@@ -144,10 +144,10 @@ def meta_analysis(df, df_comp):
             cpc_delta = (df["outbound_clicks_outbound_click"].sum() / df["spend"].sum() - df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) / (df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum()) * 100
             st.metric("CPC", currency(df["outbound_clicks_outbound_click"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
     with col2:
-        df['date'] = pd.to_datetime(df['date']).dt.date
+        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
         daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
 
-        df_comp['date'] = pd.to_datetime(df_comp['date']).dt.date
+        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
         daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
 
         daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
@@ -248,10 +248,10 @@ def google_analysis(df, df_comp):
             cpc_delta = (df["clicks"].sum() / df["spend"].sum() - df_comp["clicks"].sum() / df_comp["spend"].sum()) / (df_comp["clicks"].sum() / df_comp["spend"].sum()) * 100
             st.metric("CPC", currency(df["clicks"].sum() / df["spend"].sum()), percentage(cpc_delta), delta_color="inverse")
     with col2:
-        df['date'] = pd.to_datetime(df['date']).dt.date
+        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
         daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
 
-        df_comp['date'] = pd.to_datetime(df_comp['date']).dt.date
+        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
         daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
 
         daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
