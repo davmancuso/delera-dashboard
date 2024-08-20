@@ -58,7 +58,7 @@ st.markdown("""
 # ------------------------------
 st.sidebar.title("Analisi dei dati")
 st.sidebar.subheader("Dati cliente")
-st.sidebar.text("Cliente: Alpha Group srl\nProgetto: Delera\nWebsite: delera.io")
+st.sidebar.text("Cliente: Alpha Future Group srl\nProgetto: Delera\nWebsite: delera.io")
 st.sidebar.subheader("Dati agenzia")
 st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
 
