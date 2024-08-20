@@ -88,11 +88,13 @@ def api_retrieving(start_date, end_date):
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
 
-def opp_retrieving(conn, start_date, end_date):
+def opp_retrieving(pool, start_date, end_date):
+    conn = pool.get_connection()
     cursor = conn.cursor()
+    
     query = f"""
                 SELECT
-                    o.*,
+                    o.createdAt,
                     ops.name AS stage
                 FROM
                     opportunities o
@@ -107,6 +109,7 @@ def opp_retrieving(conn, start_date, end_date):
             """
 
     cursor.execute(query)
+
     df_raw = cursor.fetchall()
 
     cursor.close()
@@ -324,50 +327,6 @@ def google_analysis(df, df_comp):
 
 # Database
 # ------------------------------
-def pipeline_overview(_conn, end_date):
-    year = end_date.year
-
-    cursor = conn.cursor()
-    query = f"""
-                SELECT
-                    ops.name AS stage,
-                    ops.position AS Ordine,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 1 THEN 1 ELSE 0 END), 0) AS Gennaio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 2 THEN 1 ELSE 0 END), 0) AS Febbraio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 3 THEN 1 ELSE 0 END), 0) AS Marzo,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 4 THEN 1 ELSE 0 END), 0) AS Aprile,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 5 THEN 1 ELSE 0 END), 0) AS Maggio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 6 THEN 1 ELSE 0 END), 0) AS Giugno,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 7 THEN 1 ELSE 0 END), 0) AS Luglio,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 8 THEN 1 ELSE 0 END), 0) AS Agosto,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 9 THEN 1 ELSE 0 END), 0) AS Settembre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 10 THEN 1 ELSE 0 END), 0) AS Ottobre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 11 THEN 1 ELSE 0 END), 0) AS Novembre,
-                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 12 THEN 1 ELSE 0 END), 0) AS Dicembre
-                FROM
-                    opportunity_pipeline_stages ops
-                    LEFT JOIN opportunities o ON o.pipelineStageId = ops.id
-                    AND o.locationId = '{st.secrets.id_cliente}'
-                    AND YEAR(o.createdAt) = {year}
-                WHERE
-                    ops.pipelineId = '{st.secrets.pipeline_vendita}'
-                GROUP BY
-                    ops.name,
-                    ops.position
-                ORDER BY
-                    ops.position;
-            """
-
-    cursor.execute(query)
-    df_raw = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    df = pd.DataFrame(df_raw, columns=cursor.column_names)
-    df.drop(columns=["Ordine"])
-    st.table(df)
-
 def opportunities(df, df_comp):
     daQualificare = ['Nuova Opportunità',
                     'Prova Gratuita',
@@ -641,6 +600,48 @@ def opportunities(df, df_comp):
 
         st.plotly_chart(fig_opp)
 
+def opp_fullView(pool, start_date, end_date):
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    query = f"""
+                SELECT
+                    ops.name AS stage,
+                    ops.position AS Ordine,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 1 THEN 1 ELSE 0 END), 0) AS Gennaio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 2 THEN 1 ELSE 0 END), 0) AS Febbraio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 3 THEN 1 ELSE 0 END), 0) AS Marzo,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 4 THEN 1 ELSE 0 END), 0) AS Aprile,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 5 THEN 1 ELSE 0 END), 0) AS Maggio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 6 THEN 1 ELSE 0 END), 0) AS Giugno,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 7 THEN 1 ELSE 0 END), 0) AS Luglio,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 8 THEN 1 ELSE 0 END), 0) AS Agosto,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 9 THEN 1 ELSE 0 END), 0) AS Settembre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 10 THEN 1 ELSE 0 END), 0) AS Ottobre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 11 THEN 1 ELSE 0 END), 0) AS Novembre,
+                    COALESCE(SUM(CASE WHEN MONTH(o.createdAt) = 12 THEN 1 ELSE 0 END), 0) AS Dicembre
+                FROM
+                    opportunity_pipeline_stages ops
+                    LEFT JOIN opportunities o ON o.pipelineStageId = ops.id
+                    AND o.locationId = '{st.secrets.id_cliente}'
+                    AND YEAR(o.createdAt) IN ({start_date.year}, {end_date.year})
+                WHERE
+                    ops.pipelineId = '{st.secrets.pipeline_vendita}'
+                GROUP BY
+                    ops.name,
+                    ops.position
+                ORDER BY
+                    ops.position;
+            """
+
+    cursor.execute(query)
+    df = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    st.title(f"Visione completa della pipeline: {start_date.year} - {end_date.year}")
+    st.dataframe(df)
+
 # ------------------------------
 #             BODY
 # ------------------------------
@@ -708,7 +709,18 @@ if st.button("Scarica i dati") & privacy:
 
     # Database
     # ------------------------------
-    conn = mysql.connector.connect(
+    # conn = mysql.connector.connect(
+    #     host=st.secrets["host"],
+    #     port=st.secrets["port"],
+    #     user=st.secrets["username"],
+    #     password=st.secrets["password"],
+    #     database=st.secrets["database"],
+    #     auth_plugin='caching_sha2_password'
+    # )
+
+    pool = mysql.connector.pooling.MySQLConnectionPool(
+        pool_name="mypool",
+        pool_size=5,
         host=st.secrets["host"],
         port=st.secrets["port"],
         user=st.secrets["username"],
@@ -717,7 +729,7 @@ if st.button("Scarica i dati") & privacy:
         auth_plugin='caching_sha2_password'
     )
 
-    df_opp_raw = opp_retrieving(conn, comparison_start, end_date)
+    df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
     df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
 
     df_opp = df_opp_raw.loc[
@@ -731,3 +743,5 @@ if st.button("Scarica i dati") & privacy:
     ]
 
     opportunities(df_opp, df_opp_comp)
+
+    opp_fullView(pool, start_date, end_date)
