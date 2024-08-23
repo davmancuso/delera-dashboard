@@ -82,8 +82,8 @@ def thousand_2(value):
 
 # Data retrieving
 # ------------------------------
-def api_retrieving(start_date, end_date):
-    url = st.secrets.source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
+def api_retrieving(data_source, start_date, end_date):
+    url = st.secrets.source + data_source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
@@ -106,6 +106,41 @@ def opp_retrieving(pool, start_date, end_date):
                     AND o.createdAt <= '{end_date}T23:59:59.999Z'
                 ORDER BY
                     o.createdAt;
+            """
+
+    cursor.execute(query)
+
+    df_raw = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return pd.DataFrame(df_raw, columns=cursor.column_names)
+
+def lead_retrieving(pool, start_date, end_date):
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    
+    query = f"""
+                SELECT
+                    contacts.email,
+                    sub_account_custom_fields.name AS custom_field_name,
+                    FROM_UNIXTIME(contact_custom_fields.value / 1000, '%d/%m/%Y') AS custom_field_value,
+                    additional_custom_field.value AS additional_custom_field_value,
+                    opportunity_pipeline_stages.name AS pipeline_stage_name
+                FROM
+                    contacts
+                    JOIN contact_custom_fields ON contacts.id = contact_custom_fields.contactId
+                    JOIN sub_account_custom_fields ON contact_custom_fields.id = sub_account_custom_fields.id
+                    LEFT JOIN contact_custom_fields AS additional_custom_field
+                        ON contacts.id = additional_custom_field.contactId
+                        AND additional_custom_field.id = 'UiALy82OthZAitbSZTOU'
+                    LEFT JOIN opportunities ON contacts.id = opportunities.contactId
+                    LEFT JOIN opportunity_pipeline_stages ON opportunities.pipelineStageId = opportunity_pipeline_stages.id
+                WHERE
+                    sub_account_custom_fields.locationId = '{st.secrets.id_cliente}'
+                    AND sub_account_custom_fields.id = 'ok7yK4uSS6wh0S2DnZrz'
+                    AND FROM_UNIXTIME(contact_custom_fields.value / 1000, '%Y-%m-%d') BETWEEN {start_date} AND {end_date};
             """
 
     cursor.execute(query)
@@ -618,6 +653,9 @@ def opportunities(df, df_comp):
     df_stageCount = df_stageCount.reset_index().rename(columns={'index': 'Stage'})
     st.dataframe(df_stageCount)
 
+def economics(df, df_comp):
+    return None
+
 # ------------------------------
 #             BODY
 # ------------------------------
@@ -640,60 +678,6 @@ if st.button("Scarica i dati") & privacy:
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
-    df_adv_raw = api_retrieving(comparison_start, end_date)
-    df_adv_raw["date"] = pd.to_datetime(df_adv_raw["date"]).dt.date
-
-    # Meta
-    # ------------------------------
-    df_meta = df_adv_raw.loc[
-        (df_adv_raw["source"] == "facebook") &
-        (df_adv_raw["account_name"] == st.secrets["meta_account"]) &
-        (df_adv_raw["date"] >= start_date) &
-        (df_adv_raw["date"] <= end_date) &
-        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_adv_raw["campaign"].str.contains(r"DENTALAI"))
-    ]
-
-    df_meta_comp = df_adv_raw.loc[
-        (df_adv_raw["source"] == "facebook") &
-        (df_adv_raw["account_name"] == st.secrets["meta_account"]) &
-        (df_adv_raw["date"] >= comparison_start) &
-        (df_adv_raw["date"] <= comparison_end) &
-        (~df_adv_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_adv_raw["campaign"].str.contains(r"DENTALAI"))
-    ]
-
-    meta_analysis(df_meta, df_meta_comp)
-
-    # Google
-    # ------------------------------
-    df_google = df_adv_raw.loc[
-        (df_adv_raw["source"] == "google") &
-        (df_adv_raw["account_name"] == st.secrets["google_account"]) &
-        (df_adv_raw["date"] >= start_date) &
-        (df_adv_raw["date"] <= end_date)
-    ]
-
-    df_google_comp = df_adv_raw.loc[
-        (df_adv_raw["source"] == "google") &
-        (df_adv_raw["account_name"] == st.secrets["google_account"]) &
-        (df_adv_raw["date"] >= comparison_start) &
-        (df_adv_raw["date"] <= comparison_end)
-    ]
-
-    google_analysis(df_google, df_google_comp)
-
-    # Database
-    # ------------------------------
-    # conn = mysql.connector.connect(
-    #     host=st.secrets["host"],
-    #     port=st.secrets["port"],
-    #     user=st.secrets["username"],
-    #     password=st.secrets["password"],
-    #     database=st.secrets["database"],
-    #     auth_plugin='caching_sha2_password'
-    # )
-
     pool = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="mypool",
         pool_size=5,
@@ -708,6 +692,58 @@ if st.button("Scarica i dati") & privacy:
     df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
     df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
 
+    df_lead_raw = lead_retrieving(pool, comparison_start, end_date)
+    df_lead_raw['custom_field_value'] = pd.to_datetime(df_lead_raw['custom_field_value'], format='%d/%m/%Y', errors='coerce')
+
+    # Meta
+    # ------------------------------
+    df_meta_raw = api_retrieving('facebook', comparison_start, end_date)
+    df_meta_raw["date"] = pd.to_datetime(df_meta_raw["date"]).dt.date
+
+    df_meta = df_meta_raw.loc[
+        (df_meta_raw["datasource"] == "facebook") &
+        (df_meta_raw["account_name"] == st.secrets["meta_account"]) &
+        (df_meta_raw["date"] >= start_date) &
+        (df_meta_raw["date"] <= end_date) &
+        (~df_meta_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_meta_raw["campaign"].str.contains(r"DENTALAI"))
+    ]
+
+    df_meta_comp = df_meta_raw.loc[
+        (df_meta_raw["datasource"] == "facebook") &
+        (df_meta_raw["account_name"] == st.secrets["meta_account"]) &
+        (df_meta_raw["date"] >= comparison_start) &
+        (df_meta_raw["date"] <= comparison_end) &
+        (~df_meta_raw["campaign"].str.contains(r"\[HR\]")) &
+        (~df_meta_raw["campaign"].str.contains(r"DENTALAI"))
+    ]
+
+    # Google ads
+    # ------------------------------
+    df_gads_raw = api_retrieving('google_ads', comparison_start, end_date)
+    df_gads_raw["date"] = pd.to_datetime(df_gads_raw["date"]).dt.date
+
+    df_google = df_gads_raw.loc[
+        (df_gads_raw["datasource"] == "google") &
+        (df_gads_raw["account_name"] == st.secrets["google_account"]) &
+        (df_gads_raw["date"] >= start_date) &
+        (df_gads_raw["date"] <= end_date)
+    ]
+
+    df_google_comp = df_gads_raw.loc[
+        (df_gads_raw["datasource"] == "google") &
+        (df_gads_raw["account_name"] == st.secrets["google_account"]) &
+        (df_gads_raw["date"] >= comparison_start) &
+        (df_gads_raw["date"] <= comparison_end)
+    ]
+
+    # Google Analytics 4
+    # ------------------------------
+    # df_ganalytics_raw = api_retrieving('googleanalytics4', comparison_start, end_date)
+    # df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
+
+    # Database
+    # ------------------------------
     df_opp = df_opp_raw.loc[
         (df_opp_raw["createdAt"] >= start_date) &
         (df_opp_raw["createdAt"] <= end_date)
@@ -717,5 +753,21 @@ if st.button("Scarica i dati") & privacy:
         (df_opp_raw["createdAt"] >= comparison_start) &
         (df_opp_raw["createdAt"] <= comparison_end)
     ]
+
+    df_lead = df_lead_raw.loc[
+        (df_lead_raw["custom_field_value"] >= pd.to_datetime(start_date)) &
+        (df_lead_raw["custom_field_value"] <= pd.to_datetime(end_date))
+    ]
+
+    df_lead_comp = df_lead_raw.loc[
+        (df_lead_raw["custom_field_value"] >= pd.to_datetime(comparison_start)) &
+        (df_lead_raw["custom_field_value"] <= pd.to_datetime(comparison_end))
+    ]
+
+    # Data visualization
+    # ------------------------------
+    meta_analysis(df_meta, df_meta_comp)
+
+    google_analysis(df_google, df_google_comp)
 
     opportunities(df_opp, df_opp_comp)
