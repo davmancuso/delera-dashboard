@@ -1,4 +1,5 @@
 import streamlit as st
+import locale
 import mysql.connector
 from datetime import datetime, timedelta
 from urllib.request import urlopen
@@ -68,22 +69,36 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nM
 
 # Globali
 # ------------------------------
+locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
+
 def currency(value):
-    return "€ {:,.2f}".format(value)
+    integer_part, decimal_part = f"{value:,.2f}".split(".")
+    integer_part = integer_part.replace(",", ".")
+    formatted_value = f"€ {integer_part},{decimal_part}"
+    return formatted_value
 
 def percentage(value):
-    return "{:,.2f}%".format(value)
+    integer_part, decimal_part = f"{value:,.2f}".split(".")
+    integer_part = integer_part.replace(",", ".")
+    formatted_value = f"{integer_part},{decimal_part}%"
+    return formatted_value
 
 def thousand_0(value):
-    return "{:,.0f}".format(value)
+    integer_part, decimal_part = f"{value:,.2f}".split(".")
+    integer_part = integer_part.replace(",", ".")
+    formatted_value = f"{integer_part}"
+    return formatted_value
 
 def thousand_2(value):
-    return "{:,.2f}".format(value)
+    integer_part, decimal_part = f"{value:,.2f}".split(".")
+    integer_part = integer_part.replace(",", ".")
+    formatted_value = f"{integer_part},{decimal_part}"
+    return formatted_value
 
 # Data retrieving
 # ------------------------------
-def api_retrieving(data_source, start_date, end_date):
-    url = st.secrets.source + data_source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + st.secrets.fields + "&_renderer=json"
+def api_retrieving(data_source, fields, start_date, end_date):
+    url = st.secrets.source + data_source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + fields + "&_renderer=json"
     response = urlopen(url)
     data_json = json.loads(response.read())
     return pd.json_normalize(data_json, record_path=["data"])
@@ -258,7 +273,7 @@ def meta_analysis(df, df_comp):
 
 # Google
 # ------------------------------
-def google_analysis(df, df_comp):
+def gads_analysis(df, df_comp):
     st.title("Analisi delle campagne Google")
 
     col1, col2 = st.columns(2)
@@ -359,6 +374,141 @@ def google_analysis(df, df_comp):
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].map('€ {:,.2f}'.format)
 
     st.dataframe(dettaglioCampagne)
+
+def ganalytics_analysis(df, df_comp):
+    st.title("Analisi del traffico")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        active_user_delta = (df["active_users"].sum() - df_comp["active_users"].sum()) / df_comp["active_users"].sum() *100
+        st.metric("Utenti attivi", thousand_0(df["active_users"].sum()), percentage(active_user_delta))
+
+        col1_1, col1_2, col1_3 = st.columns(3)
+        with col1_1:
+            sessioni_delta = (df["sessions"].sum() - df_comp["sessions"].sum()) / df_comp["sessions"].sum() * 100
+            st.metric("Sessioni", thousand_0(df["sessions"].sum()), percentage(sessioni_delta))
+
+            sessions_users_delta = ((df["sessions"].sum() / df["active_users"].sum()) - (df_comp["sessions"].sum() / df_comp["active_users"].sum())) / (df_comp["sessions"].sum() / df_comp["active_users"].sum()) * 100
+            st.metric("Sessioni per utente attivo", thousand_2(df["sessions"].sum() / df["active_users"].sum()), percentage(sessions_users_delta))
+        with col1_2:
+            sessioni_engaged_delta = (df["engaged_sessions"].sum() - df_comp["engaged_sessions"].sum()) / df_comp["engaged_sessions"].sum() * 100
+            st.metric("Sessioni con engage", thousand_0(df["engaged_sessions"].sum()), percentage(sessioni_engaged_delta))
+
+            durata_sessione_delta = (((df["user_engagement_duration"].sum() / df["sessions"].sum())) - ((df_comp["user_engagement_duration"].sum() / df_comp["sessions"].sum()))) / ((df_comp["user_engagement_duration"].sum() / df_comp["sessions"].sum())) * 100
+            st.metric("Durata media sessione (sec)", thousand_2((df["user_engagement_duration"].sum() / df["sessions"].sum())), percentage(durata_sessione_delta))
+        with col1_3:
+            engage_delta = (df["engaged_sessions"].sum() / df["sessions"].sum() - df_comp["engaged_sessions"].sum() / df_comp["sessions"].sum()) / (df_comp["engaged_sessions"].sum() / df_comp["sessions"].sum()) * 100
+            st.metric("Tasso di engage", percentage(df["engaged_sessions"].sum() / df["sessions"].sum()), percentage(engage_delta))
+
+            tempo_user_delta = (((df["user_engagement_duration"].sum() / df["active_users"].sum())) - ((df_comp["user_engagement_duration"].sum() / df_comp["active_users"].sum()))) / ((df_comp["user_engagement_duration"].sum() / df_comp["active_users"].sum())) * 100
+            st.metric("Tempo per utente (sec)", thousand_2((df["user_engagement_duration"].sum() / df["active_users"].sum())), percentage(tempo_user_delta))
+    with col2:
+        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
+        daily_users_current = df.groupby('date')['active_users'].sum().reset_index()
+
+        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
+        daily_users_comp = df_comp.groupby('date')['active_users'].sum().reset_index()
+
+        daily_users_current['day'] = (daily_users_current['date'] - daily_users_current['date'].min()).apply(lambda x: x.days)
+        daily_users_comp['day'] = (daily_users_comp['date'] - daily_users_comp['date'].min()).apply(lambda x: x.days)
+
+        daily_users_current['period'] = 'Periodo Corrente'
+        daily_users_comp['period'] = 'Periodo Precedente'
+
+        combined_users = pd.concat([daily_users_comp, daily_users_current])
+
+        color_map = {
+            'Periodo Corrente': '#b12b94',
+            'Periodo Precedente': '#eb94d8'
+        }
+
+        hover_data = {
+            'period': True,
+            'date': '|%d/%m/%Y',
+            'active_users': ':.0f',
+            'day': False
+        }
+
+        fig_spend = px.line(combined_users, x='day', y='active_users', color='period',
+                    title='Utenti attivi',
+                    markers=True,
+                    labels={'day': 'Giorno relativo al periodo', 'active_users': 'Utenti attivi', 'period': 'Periodo', 'date': 'Data'},
+                    color_discrete_map=color_map,
+                    hover_data=hover_data)
+
+        fig_spend.update_traces(mode='lines+markers')
+        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+        fig_spend.update_traces(
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Utenti attivi: %{y:.0f}<extra></extra>'
+        )
+        fig_spend.update_layout(
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.4,
+                xanchor="center",
+                x=0.5
+            )
+        )
+        
+        st.plotly_chart(fig_spend)
+
+    st.title("Analisi del traffico")
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        google = df[df['source'].str.contains('google') & ~df['source'].str.contains('googleads')]
+        google_ads = df[df['source'].str.contains('googleads')]
+        meta_ads = df[df['source'].str.contains('facebook|instagram')]
+        youtube = df[df['source'].str.contains('youtube')]
+        traffico_diretto = df[df['source'].str.contains(r'\(direct\)')]
+        fonti_sconosciute = df[df['source'].str.contains(r'\(not set\)')]
+        altre_fonti = df[~df['source'].str.contains('google|googleads|facebook|instagram|youtube|\\(direct\\)|\\(not set\\)')]
+
+        session_groups = {
+            "google": google['sessions'].sum(),
+            "google_ads": google_ads['sessions'].sum(),
+            "meta_ads": meta_ads['sessions'].sum(),
+            "youtube": youtube['sessions'].sum(),
+            "traffico diretto": traffico_diretto['sessions'].sum(),
+            "fonti sconosciute": fonti_sconosciute['sessions'].sum(),
+            "altre fonti": altre_fonti['sessions'].sum()
+        }
+
+        session_df = pd.DataFrame(list(session_groups.items()), columns=['source_group', 'sessions'])
+
+        total_sessions = session_df['sessions'].sum()
+        session_df['percentage'] = (session_df['sessions'] / total_sessions) * 100
+
+        source_session_soglia = 3.00
+        main_groups = session_df[session_df['percentage'] >= source_session_soglia].copy()
+
+        fig_session_pie = px.pie(main_groups, values='sessions', names='source_group', title='Distribuzione delle sessioni per fonte')
+
+        fig_session_pie.update_traces(
+            hovertemplate='Fonte: %{label}<br>Sessioni: %{value}<extra></extra>'
+        )
+
+        st.plotly_chart(fig_session_pie)
+        st.write(f'Valore di soglia: {source_session_soglia}%')
+    with col4:
+        campaign_sessions = df.groupby('campaign')['sessions'].sum().reset_index()
+
+        total_campaign_sessions = campaign_sessions['sessions'].sum()
+        campaign_sessions['percentage'] = (campaign_sessions['sessions'] / total_campaign_sessions) * 100
+
+        campaign_session_soglia = 3.00
+        main_groups = campaign_sessions[campaign_sessions['percentage'] >= campaign_session_soglia].copy()
+
+        fig_campaign = px.pie(main_groups, values='sessions', names='campaign', title='Distribuzione delle sessioni per campagna')
+
+        fig_campaign.update_traces(
+            hovertemplate='Campagna: %{label}<br>Sessioni: %{value}<extra></extra>'
+        )
+
+        st.plotly_chart(fig_campaign)
+        st.write(f'Valore di soglia: {campaign_session_soglia}%')
 
 # Database
 # ------------------------------
@@ -622,7 +772,7 @@ def opportunities(df, df_comp):
         fig_opp.update_traces(mode='lines+markers')
         fig_opp.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
         fig_opp.update_traces(
-            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Lead: %{y:.2f}<extra></extra>'
+            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Opportunità: %{y:.2f}<extra></extra>'
         )
         fig_opp.update_layout(
             legend=dict(
@@ -677,7 +827,7 @@ if st.button("Scarica i dati") & privacy:
 
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
-
+    
     pool = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="mypool",
         pool_size=5,
@@ -688,16 +838,17 @@ if st.button("Scarica i dati") & privacy:
         database=st.secrets["database"],
         auth_plugin='caching_sha2_password'
     )
-
+    
     df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
     df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
-
+    
     df_lead_raw = lead_retrieving(pool, comparison_start, end_date)
     df_lead_raw['custom_field_value'] = pd.to_datetime(df_lead_raw['custom_field_value'], format='%d/%m/%Y', errors='coerce')
-
+    
     # Meta
     # ------------------------------
-    df_meta_raw = api_retrieving('facebook', comparison_start, end_date)
+    meta_fields = "datasource,source,account_name,date,campaign,spend,impressions,outbound_clicks_outbound_click"
+    df_meta_raw = api_retrieving('facebook', meta_fields, comparison_start, end_date)
     df_meta_raw["date"] = pd.to_datetime(df_meta_raw["date"]).dt.date
 
     df_meta = df_meta_raw.loc[
@@ -720,27 +871,43 @@ if st.button("Scarica i dati") & privacy:
 
     # Google ads
     # ------------------------------
-    df_gads_raw = api_retrieving('google_ads', comparison_start, end_date)
+    gads_fields = "datasource,source,account_name,date,campaign,spend,impressions,clicks"
+    df_gads_raw = api_retrieving('google_ads', gads_fields, comparison_start, end_date)
     df_gads_raw["date"] = pd.to_datetime(df_gads_raw["date"]).dt.date
 
-    df_google = df_gads_raw.loc[
+    df_gads = df_gads_raw.loc[
         (df_gads_raw["datasource"] == "google") &
-        (df_gads_raw["account_name"] == st.secrets["google_account"]) &
+        (df_gads_raw["account_name"] == st.secrets["gads_account"]) &
         (df_gads_raw["date"] >= start_date) &
         (df_gads_raw["date"] <= end_date)
     ]
 
-    df_google_comp = df_gads_raw.loc[
+    df_gads_comp = df_gads_raw.loc[
         (df_gads_raw["datasource"] == "google") &
-        (df_gads_raw["account_name"] == st.secrets["google_account"]) &
+        (df_gads_raw["account_name"] == st.secrets["gads_account"]) &
         (df_gads_raw["date"] >= comparison_start) &
         (df_gads_raw["date"] <= comparison_end)
     ]
 
     # Google Analytics 4
     # ------------------------------
-    # df_ganalytics_raw = api_retrieving('googleanalytics4', comparison_start, end_date)
-    # df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
+    ganalytics_fields = "datasource,source,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
+    df_ganalytics_raw = api_retrieving('googleanalytics4', ganalytics_fields, comparison_start, end_date)
+    df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
+    
+    df_ganalytics = df_ganalytics_raw.loc[
+        (df_ganalytics_raw["datasource"] == "googleanalytics4") &
+        (df_ganalytics_raw["account_name"] == st.secrets["ganalytics_account"]) &
+        (df_ganalytics_raw["date"] >= start_date) &
+        (df_ganalytics_raw["date"] <= end_date)
+    ]
+
+    df_ganalytics_comp = df_ganalytics_raw.loc[
+        (df_ganalytics_raw["datasource"] == "googleanalytics4") &
+        (df_ganalytics_raw["account_name"] == st.secrets["ganalytics_account"]) &
+        (df_ganalytics_raw["date"] >= comparison_start) &
+        (df_ganalytics_raw["date"] <= comparison_end)
+    ]
 
     # Database
     # ------------------------------
@@ -766,8 +933,15 @@ if st.button("Scarica i dati") & privacy:
 
     # Data visualization
     # ------------------------------
+    # DA FARE: costruzione della funzione economics
+    # economics(df_lead, df_lead_comp)
+
     meta_analysis(df_meta, df_meta_comp)
 
-    google_analysis(df_google, df_google_comp)
+    gads_analysis(df_gads, df_gads_comp)
 
     opportunities(df_opp, df_opp_comp)
+
+    ganalytics_analysis(df_ganalytics, df_ganalytics_comp)
+
+    # DA FARE: analisi dei flussi dei singoli funnel
