@@ -1,0 +1,83 @@
+1. Modularizzazione
+
+# Suddividere il codice in moduli separati
+import data_retrieval
+import data_processing 
+import visualizations
+
+# Nel file principale:
+df_meta = data_retrieval.get_meta_data(start_date, end_date)
+df_processed = data_processing.process_meta_data(df_meta)
+visualizations.plot_meta_analysis(df_processed)
+
+2. Configurazione centralizzata
+
+# config.py
+STAGES = {
+    'daQualificare': ['Nuova Opportunità', 'Prova Gratuita', ...],
+    'qualificati': ['Autonomo - Call Onboarding', ...],
+    # ...
+}
+
+# Nel file principale:
+from config import STAGES
+
+if df['stage'].isin(STAGES['daQualificare']):
+    # ...
+
+3. Utilizzo di classi per raggruppare funzionalità correlate
+
+class DataAnalyzer:
+    def __init__(self, df, df_comp):
+        self.df = df
+        self.df_comp = df_comp
+    
+    def analyze_meta(self):
+        # Logica per l'analisi meta
+        pass
+    
+    def analyze_gads(self):
+        # Logica per l'analisi Google Ads
+        pass
+
+# Uso:
+analyzer = DataAnalyzer(df, df_comp)
+analyzer.analyze_meta()
+analyzer.analyze_gads()
+
+4. Gestione degli errori
+
+try:
+    df = api_retrieving(data_source, fields, start_date, end_date)
+except Exception as e:
+    st.error(f"Errore nel recupero dei dati: {str(e)}")
+    return
+
+5. Ottimizzazione delle query del database
+
+# Utilizzare indici appropriati nel database
+# Limitare i dati recuperati solo a quelli necessari
+query = """
+    SELECT createdAt, lastStageChangeAt, monetaryValue, stage
+    FROM opportunities
+    WHERE locationId = %s AND createdAt BETWEEN %s AND %s
+"""
+cursor.execute(query, (st.secrets.id_cliente, start_date, end_date))
+
+6. Caching dei risultati
+
+@st.cache_data
+def fetch_and_process_data(start_date, end_date):
+    # Logica per recuperare e processare i dati
+    return processed_data
+
+# Uso:
+data = fetch_and_process_data(start_date, end_date)
+
+7. Utilizzo di list comprehension e funzioni di aggregazione
+
+# Invece di cicli for
+filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
+
+# Utilizzare funzioni di aggregazione di pandas
+df.groupby('stage')['monetaryValue'].sum()
