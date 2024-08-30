@@ -8,7 +8,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from config import STAGES
+from config import STAGES, FIELDS
+from data_analyzer import DataAnalyzer
 
 # ------------------------------
 #             STYLE
@@ -902,6 +903,17 @@ if st.button("Scarica i dati") & privacy:
 
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
+
+    # Data retrival
+    # ------------------------------
+    df_meta_raw = api_retrieving('facebook', FIELDS['meta'], comparison_start, end_date)
+    df_meta_raw["date"] = pd.to_datetime(df_meta_raw["date"]).dt.date
+
+    df_gads_raw = api_retrieving('google_ads', FIELDS['gads'], comparison_start, end_date)
+    df_gads_raw["date"] = pd.to_datetime(df_gads_raw["date"]).dt.date
+
+    df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
+    df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
     
     pool = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="mypool",
@@ -921,12 +933,11 @@ if st.button("Scarica i dati") & privacy:
     # df_lead_raw = lead_retrieving(pool, comparison_start, end_date)
     # df_lead_raw['custom_field_value'] = pd.to_datetime(df_lead_raw['custom_field_value'], format='%d/%m/%Y', errors='coerce')
     
-    # Meta
+    # Data processing
     # ------------------------------
-    meta_fields = "datasource,source,account_name,date,campaign,spend,impressions,outbound_clicks_outbound_click"
-    df_meta_raw = api_retrieving('facebook', meta_fields, comparison_start, end_date)
-    df_meta_raw["date"] = pd.to_datetime(df_meta_raw["date"]).dt.date
+    analyzer = DataAnalyzer(start_date, end_date, comparison_start, comparison_end)
 
+    # Meta
     df_meta = df_meta_raw.loc[
         (df_meta_raw["datasource"] == "facebook") &
         (df_meta_raw["account_name"] == st.secrets["meta_account"]) &
@@ -945,12 +956,9 @@ if st.button("Scarica i dati") & privacy:
         (~df_meta_raw["campaign"].str.contains(r"DENTALAI"))
     ]
 
-    # Google ads
-    # ------------------------------
-    gads_fields = "datasource,source,account_name,date,campaign,spend,impressions,clicks"
-    df_gads_raw = api_retrieving('google_ads', gads_fields, comparison_start, end_date)
-    df_gads_raw["date"] = pd.to_datetime(df_gads_raw["date"]).dt.date
+    meta_results, meta_results_comp = analyzer.analyze_meta(df_meta, df_meta_comp)
 
+    # Google ads
     df_gads = df_gads_raw.loc[
         (df_gads_raw["datasource"] == "google") &
         (df_gads_raw["account_name"] == st.secrets["gads_account"]) &
@@ -966,11 +974,6 @@ if st.button("Scarica i dati") & privacy:
     ]
 
     # Google Analytics 4
-    # ------------------------------
-    ganalytics_fields = "datasource,source,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
-    df_ganalytics_raw = api_retrieving('googleanalytics4', ganalytics_fields, comparison_start, end_date)
-    df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
-    
     df_ganalytics = df_ganalytics_raw.loc[
         (df_ganalytics_raw["datasource"] == "googleanalytics4") &
         (df_ganalytics_raw["account_name"] == st.secrets["ganalytics_account"]) &
@@ -986,7 +989,6 @@ if st.button("Scarica i dati") & privacy:
     ]
 
     # Database
-    # ------------------------------
     df_opp = df_opp_raw.loc[
         (df_opp_raw["createdAt"] >= start_date) &
         (df_opp_raw["createdAt"] <= end_date)
@@ -1007,19 +1009,8 @@ if st.button("Scarica i dati") & privacy:
         (df_opp_raw["lastStageChangeAt"] <= comparison_end)
     ]
 
-    # df_lead = df_lead_raw.loc[
-    #     (df_lead_raw["custom_field_value"] >= pd.to_datetime(start_date)) &
-    #     (df_lead_raw["custom_field_value"] <= pd.to_datetime(end_date))
-    # ]
-
-    # df_lead_comp = df_lead_raw.loc[
-    #     (df_lead_raw["custom_field_value"] >= pd.to_datetime(comparison_start)) &
-    #     (df_lead_raw["custom_field_value"] <= pd.to_datetime(comparison_end))
-    # ]
-
     # Data visualization
     # ------------------------------
-    # DA FARE: aggiunta dell'attribuzione dei lead
     economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_meta_comp, df_gads, df_gads_comp)
 
     meta_analysis(df_meta, df_meta_comp)
@@ -1031,3 +1022,4 @@ if st.button("Scarica i dati") & privacy:
     ganalytics_analysis(df_ganalytics, df_ganalytics_comp)
 
     # DA FARE: analisi dei flussi dei singoli funnel
+    # DA FARE: aggiunta dell'attribuzione dei lead

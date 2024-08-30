@@ -53,6 +53,12 @@ STAGES = {
         'Vinto mensile con acc.impresa',
         'Vinto annuale con acc.impresa',
         'Vinti generici'],
-    'persi': ['Non Pronto (in target)',
+    'persi': ['Non Pronto (in target)'
         'Cliente Non vinto ']
+}
+
+FIELDS = {
+    'meta': "datasource,source,account_name,date,campaign,spend,impressions,outbound_clicks_outbound_click",
+    'gads': "datasource,source,account_name,date,campaign,spend,impressions,clicks",
+    'ganalytics': "datasource,source,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
 }
