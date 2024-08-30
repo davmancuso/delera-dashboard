@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from config import STAGES
+
 # ------------------------------
 #             STYLE
 # ------------------------------
@@ -554,39 +556,39 @@ def opportunities(df, df_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        leadDaQualificare_delta = get_metric_delta(df[df['stage'].isin(daQualificare)].shape[0], df_comp[df_comp['stage'].isin(daQualificare)].shape[0])
-        st.metric("Lead da qualificare", df[df['stage'].isin(daQualificare)].shape[0], leadDaQualificare_delta)
+        leadDaQualificare_delta = get_metric_delta(df[df['stage'].isin(STAGES['daQualificare'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['daQualificare'])].shape[0])
+        st.metric("Lead da qualificare", df[df['stage'].isin(STAGES['daQualificare'])].shape[0], leadDaQualificare_delta)
         
         col1_1, col1_2, col1_3 = st.columns(3)
         with col1_1:
-            leadQualificati_delta = get_metric_delta(df[df['stage'].isin(qualificati)].shape[0], df_comp[df_comp['stage'].isin(qualificati)].shape[0])
-            st.metric("Lead qualificati", df[df['stage'].isin(qualificati)].shape[0], leadQualificati_delta)
+            leadQualificati_delta = get_metric_delta(df[df['stage'].isin(STAGES['qualificati'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['qualificati'])].shape[0])
+            st.metric("Lead qualificati", df[df['stage'].isin(STAGES['qualificati'])].shape[0], leadQualificati_delta)
 
-            leadVinti_delta = get_metric_delta(df[df['stage'].isin(vinti)].shape[0], df_comp[df_comp['stage'].isin(vinti)].shape[0])
-            st.metric("Vendite", df[df['stage'].isin(vinti)].shape[0], leadVinti_delta)
+            leadVinti_delta = get_metric_delta(df[df['stage'].isin(STAGES['vinti'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['vinti'])].shape[0])
+            st.metric("Vendite", df[df['stage'].isin(STAGES['vinti'])].shape[0], leadVinti_delta)
         with col1_2:
-            lead_qualificati_giorno = df[df['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days
-            lead_qualificati_giorno_comp = df_comp[df_comp['stage'].isin(qualificati)].shape[0] / (end_date - start_date).days
+            lead_qualificati_giorno = df[df['stage'].isin(STAGES['qualificati'])].shape[0] / (end_date - start_date).days
+            lead_qualificati_giorno_comp = df_comp[df_comp['stage'].isin(STAGES['qualificati'])].shape[0] / (end_date - start_date).days
             leadQualificatiGiorno_delta = get_metric_delta(lead_qualificati_giorno, lead_qualificati_giorno_comp)
             st.metric("Lead qualificati al giorno", thousand_2(lead_qualificati_giorno), leadQualificatiGiorno_delta)
 
-            vinti_per_giorno = df[df['stage'].isin(vinti)].shape[0] / (end_date - start_date).days
-            vinti_per_giorno_comp = df_comp[df_comp['stage'].isin(vinti)].shape[0] / (end_date - start_date).days
+            vinti_per_giorno = df[df['stage'].isin(STAGES['vinti'])].shape[0] / (end_date - start_date).days
+            vinti_per_giorno_comp = df_comp[df_comp['stage'].isin(STAGES['vinti'])].shape[0] / (end_date - start_date).days
             vintiPerGiorno_delta = get_metric_delta(vinti_per_giorno, vinti_per_giorno_comp)
             st.metric("Vendite al giorno", thousand_2(vinti_per_giorno), vintiPerGiorno_delta)
         with col1_3:
-            tasso_qualifica_corrente = df[df['stage'].isin(qualificati)].shape[0] / (len(df) - df[df['stage'].isin(daQualificare)].shape[0]) if len(df) > df[df['stage'].isin(daQualificare)].shape[0] else 0
-            tasso_qualifica_precedente = df_comp[df_comp['stage'].isin(qualificati)].shape[0] / (len(df_comp) - df_comp[df_comp['stage'].isin(daQualificare)].shape[0]) if len(df_comp) > df_comp[df_comp['stage'].isin(daQualificare)].shape[0] else 0
+            tasso_qualifica_corrente = df[df['stage'].isin(STAGES['qualificati'])].shape[0] / (len(df) - df[df['stage'].isin(STAGES['daQualificare'])].shape[0]) if len(df) > df[df['stage'].isin(STAGES['daQualificare'])].shape[0] else 0
+            tasso_qualifica_precedente = df_comp[df_comp['stage'].isin(STAGES['qualificati'])].shape[0] / (len(df_comp) - df_comp[df_comp['stage'].isin(STAGES['daQualificare'])].shape[0]) if len(df_comp) > df_comp[df_comp['stage'].isin(STAGES['daQualificare'])].shape[0] else 0
             tassoQualifica_delta = get_metric_delta(tasso_qualifica_corrente, tasso_qualifica_precedente)
             st.metric("Tasso di qualifica", percentage(tasso_qualifica_corrente) if tasso_qualifica_corrente != 0 else "-", tassoQualifica_delta)
 
-            tasso_vendita_corrente = df[df['stage'].isin(vinti)].shape[0] / df[df['stage'].isin(qualificati)].shape[0] if df[df['stage'].isin(qualificati)].shape[0] > 0 else 0
-            tasso_vendita_precedente = df_comp[df_comp['stage'].isin(vinti)].shape[0] / df_comp[df_comp['stage'].isin(qualificati)].shape[0] if df_comp[df_comp['stage'].isin(qualificati)].shape[0] > 0 else 0
+            tasso_vendita_corrente = df[df['stage'].isin(STAGES['vinti'])].shape[0] / df[df['stage'].isin(STAGES['qualificati'])].shape[0] if df[df['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            tasso_vendita_precedente = df_comp[df_comp['stage'].isin(STAGES['vinti'])].shape[0] / df_comp[df_comp['stage'].isin(STAGES['qualificati'])].shape[0] if df_comp[df_comp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
             tassoVendita_delta = get_metric_delta(tasso_vendita_corrente, tasso_vendita_precedente)
             st.metric("Tasso di vendita", percentage(tasso_vendita_corrente) if tasso_vendita_corrente != 0 else "-", tassoVendita_delta)
     with col2:
-        df_qualificati = df[df['stage'].isin(qualificati)]
-        df_qualificati_comp = df_comp[df_comp['stage'].isin(qualificati)]
+        df_qualificati = df[df['stage'].isin(STAGES['qualificati'])]
+        df_qualificati_comp = df_comp[df_comp['stage'].isin(STAGES['qualificati'])]
 
         df_qualificati.loc[:, 'createdAt'] = pd.to_datetime(df_qualificati['createdAt']).dt.date
         df_qualificati_comp.loc[:, 'createdAt'] = pd.to_datetime(df_qualificati_comp['createdAt']).dt.date
@@ -680,7 +682,7 @@ def opportunities(df, df_comp):
 
         fig_vintiperday = go.Figure(go.Indicator(
             mode="gauge+number+delta",
-            value=float(df[df['stage'].isin(vinti)].shape[0]/((end_date - start_date).days))/3*100,
+            value=float(df[df['stage'].isin(STAGES['vinti'])].shape[0]/((end_date - start_date).days))/3*100,
             number={'suffix': "%"},
             delta={'reference': vintiPerDay_delta, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'increasing': {'color': deltaColor_vintiperday}, 'decreasing': {'color': deltaColor_vintiperday}, 'font': {'size': 16}},
             title={'text': "Vendite al giorno: 3"},
@@ -710,7 +712,7 @@ def opportunities(df, df_comp):
 
         opportunitàPerStage = df['stage'].value_counts()
 
-        opportunitàPerse = leadPersi + persi
+        opportunitàPerse = STAGES['leadPersi'] + STAGES['persi']
         filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
         opportunitàPerse_df = pd.DataFrame(list(filtered_counts.items()), columns=['Stage', 'Opportunità'])
         
@@ -725,23 +727,23 @@ def opportunities(df, df_comp):
         
         col6_1, col6_2, col6_3 = st.columns(3)
         with col6_1:
-            setting_delta = get_metric_delta(df[df['stage'].isin(daQualificare)].shape[0], df_comp[df_comp['stage'].isin(daQualificare)].shape[0])
-            st.metric("Setting - Da gestire", thousand_0(df[df['stage'].isin(daQualificare)].shape[0]), setting_delta)
+            setting_delta = get_metric_delta(df[df['stage'].isin(STAGES['daQualificare'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['daQualificare'])].shape[0])
+            st.metric("Setting - Da gestire", thousand_0(df[df['stage'].isin(STAGES['daQualificare'])].shape[0]), setting_delta)
 
-            settingPersi_delta = get_metric_delta(df[df['stage'].isin(leadPersi)].shape[0], df_comp[df_comp['stage'].isin(leadPersi)].shape[0])
-            st.metric("Setting - Persi", thousand_0(df[df['stage'].isin(leadPersi)].shape[0]), settingPersi_delta)
+            settingPersi_delta = get_metric_delta(df[df['stage'].isin(STAGES['leadPersi'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['leadPersi'])].shape[0])
+            st.metric("Setting - Persi", thousand_0(df[df['stage'].isin(STAGES['leadPersi'])].shape[0]), settingPersi_delta)
         with col6_2:
-            vendite_delta = get_metric_delta(df[df['stage'].isin(venditeGestione)].shape[0], df_comp[df_comp['stage'].isin(venditeGestione)].shape[0])
-            st.metric("Vendita - Da gestire", thousand_0(df[df['stage'].isin(venditeGestione)].shape[0]), vendite_delta)
+            vendite_delta = get_metric_delta(df[df['stage'].isin(STAGES['venditeGestione'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['venditeGestione'])].shape[0])
+            st.metric("Vendita - Da gestire", thousand_0(df[df['stage'].isin(STAGES['venditeGestione'])].shape[0]), vendite_delta)
 
-            chiusura_delta = get_metric_delta(df[df['stage'].isin(venditeChiusura)].shape[0], df_comp[df_comp['stage'].isin(venditeChiusura)].shape[0])
-            st.metric("Vendita - Da chiudere", thousand_0(df[df['stage'].isin(venditeChiusura)].shape[0]), chiusura_delta)
+            chiusura_delta = get_metric_delta(df[df['stage'].isin(STAGES['venditeChiusura'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['venditeChiusura'])].shape[0])
+            st.metric("Vendita - Da chiudere", thousand_0(df[df['stage'].isin(STAGES['venditeChiusura'])].shape[0]), chiusura_delta)
         with col6_3:
-            vinti_delta = get_metric_delta(df[df['stage'].isin(vinti)].shape[0], df_comp[df_comp['stage'].isin(vinti)].shape[0])
-            st.metric("Vinti", thousand_0(df[df['stage'].isin(vinti)].shape[0]), vinti_delta)
+            vinti_delta = get_metric_delta(df[df['stage'].isin(STAGES['vinti'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['vinti'])].shape[0])
+            st.metric("Vinti", thousand_0(df[df['stage'].isin(STAGES['vinti'])].shape[0]), vinti_delta)
 
-            persi_delta = get_metric_delta(df[df['stage'].isin(persi)].shape[0], df_comp[df_comp['stage'].isin(persi)].shape[0])
-            st.metric("Persi", thousand_0(df[df['stage'].isin(persi)].shape[0]), persi_delta)
+            persi_delta = get_metric_delta(df[df['stage'].isin(STAGES['persi'])].shape[0], df_comp[df_comp['stage'].isin(STAGES['persi'])].shape[0])
+            st.metric("Persi", thousand_0(df[df['stage'].isin(STAGES['persi'])].shape[0]), persi_delta)
     with col7:
         df.loc[:, 'createdAt'] = pd.to_datetime(df['createdAt']).dt.date
         opp_per_giorno = df.groupby('createdAt').size().reset_index(name='conteggio')
@@ -798,11 +800,11 @@ def economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_
     spesa_tot_comp = df_meta_comp["spend"].sum() + df_gads_comp["spend"].sum()
     spesa_tot_delta = (spesa_tot - spesa_tot_comp) / spesa_tot_comp * 100
 
-    incasso = df_opp[df_opp['stage'].isin(vinti)]['monetaryValue'].sum()
-    incasso_comp = df_opp_comp[df_opp_comp['stage'].isin(vinti)]['monetaryValue'].sum()
+    incasso = df_opp[df_opp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+    incasso_comp = df_opp_comp[df_opp_comp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
     
-    incasso_stage = df_opp_stage[df_opp_stage['stage'].isin(vinti)]['monetaryValue'].sum()
-    incasso_stage_comp = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(vinti)]['monetaryValue'].sum()
+    incasso_stage = df_opp_stage[df_opp_stage['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+    incasso_stage_comp = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
 
     st.title("Performance economiche")
 
@@ -819,13 +821,13 @@ def economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_
             costo_per_lead_delta = get_metric_delta(costo_per_lead, costo_per_lead_comp)
             st.metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
         with col1_2:
-            costo_per_lead_qual = spesa_tot / df_opp[df_opp['stage'].isin(qualificati)].shape[0] if df_opp[df_opp['stage'].isin(qualificati)].shape[0] > 0 else 0
-            costo_per_lead_qual_comp = spesa_tot_comp / df_opp_comp[df_opp_comp['stage'].isin(qualificati)].shape[0] if df_opp_comp[df_opp_comp['stage'].isin(qualificati)].shape[0] > 0 else 0
+            costo_per_lead_qual = spesa_tot / df_opp[df_opp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp[df_opp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_comp = spesa_tot_comp / df_opp_comp[df_opp_comp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_comp[df_opp_comp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
             costo_per_lead_qual_delta = get_metric_delta(costo_per_lead_qual, costo_per_lead_qual_comp)
             st.metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
         with col1_3:
-            vendite_correnti = df_opp[df_opp['stage'].isin(vinti)].shape[0]
-            vendite_precedenti = df_opp_comp[df_opp_comp['stage'].isin(vinti)].shape[0]
+            vendite_correnti = df_opp[df_opp['stage'].isin(STAGES['vinti'])].shape[0]
+            vendite_precedenti = df_opp_comp[df_opp_comp['stage'].isin(STAGES['vinti'])].shape[0]
 
             costo_per_vendita = spesa_tot / vendite_correnti if vendite_correnti > 0 else 0
             costo_per_vendita_comp = spesa_tot_comp / vendite_precedenti if vendite_precedenti > 0 else 0
@@ -854,14 +856,14 @@ def economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_
             st.metric("Costo per lead", currency(costo_per_lead_stage) if costo_per_lead_stage != 0 else "-", costo_per_lead_stage_delta)
 
         with col2_2:
-            costo_per_lead_qual_stage = spesa_tot / df_opp_stage[df_opp_stage['stage'].isin(qualificati)].shape[0] if df_opp_stage[df_opp_stage['stage'].isin(qualificati)].shape[0] > 0 else 0
-            costo_per_lead_qual_stage_comp = spesa_tot_comp / df_opp_stage_comp[df_opp_stage_comp['stage'].isin(qualificati)].shape[0] if df_opp_stage_comp[df_opp_stage_comp['stage'].isin(qualificati)].shape[0] > 0 else 0
+            costo_per_lead_qual_stage = spesa_tot / df_opp_stage[df_opp_stage['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_stage[df_opp_stage['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_stage_comp = spesa_tot_comp / df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
             costo_per_lead_qual_stage_delta = get_metric_delta(costo_per_lead_qual_stage, costo_per_lead_qual_stage_comp)
             st.metric("Costo per lead qualificato", currency(costo_per_lead_qual_stage) if costo_per_lead_qual_stage != 0 else "-", costo_per_lead_qual_stage_delta)
 
         with col2_3:
-            vendite_correnti_stage = df_opp_stage[df_opp_stage['stage'].isin(vinti)].shape[0]
-            vendite_precedenti_stage = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(vinti)].shape[0]
+            vendite_correnti_stage = df_opp_stage[df_opp_stage['stage'].isin(STAGES['vinti'])].shape[0]
+            vendite_precedenti_stage = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['vinti'])].shape[0]
 
             costo_per_vendita_stage = spesa_tot / vendite_correnti_stage if vendite_correnti_stage > 0 else 0
             costo_per_vendita_stage_comp = spesa_tot_comp / vendite_precedenti_stage if vendite_precedenti_stage > 0 else 0
@@ -895,15 +897,6 @@ privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative
 
 if st.button("Scarica i dati") & privacy:
     st.cache_data.clear()
-
-    stages = ['Nuova Opportunità', 'Prova Gratuita', 'Numero Non corretto flusso di email marketing', 'Senza risposta', 'Fuori target', 'App Tel Fissato', 'Risposto/Da richiamare', 'Lead Perso (10 tentativi non risp)', 'Autonomo - Call Onboarding', 'Call onboarding', 'Cancellati - Da riprogrammare', 'No Show - Ghost', 'Non Pronto (in target)', 'Seconda call / demo', 'Preventivo Mandato / Follow Up', 'Vinto Abbonamento Mensile', 'Vinto Abbonamento Annuale', 'Vinto mensile con acc.impresa', 'Vinto annuale con acc.impresa', 'Vinti generici', 'Ag.marketing/collaborazioni', 'Cliente Non vinto']
-    daQualificare = ['Nuova Opportunità', 'Prova Gratuita', 'Senza risposta', 'App Tel Fissato', 'Risposto/Da richiamare']
-    qualificati = ['Autonomo - Call Onboarding', 'Call onboarding', 'Cancellati - Da riprogrammare', 'No Show - Ghost', 'Non Pronto (in target)', 'Seconda call / demo', 'Preventivo Mandato / Follow Up', 'Vinto Abbonamento Mensile', 'Vinto Abbonamento Annuale', 'Vinto mensile con acc.impresa', 'Vinto annuale con acc.impresa', 'Vinti generici', 'Ag.marketing/collaborazioni', 'Cliente Non vinto ']
-    leadPersi = ['Numero Non corretto flusso di email marketing ', 'Fuori target', 'Lead Perso ( 10 tentativi non risp)']
-    venditeGestione = ['Autonomo - Call Onboarding', 'Call onboarding', 'Cancellati - Da riprogrammare', 'No Show - Ghost']
-    venditeChiusura = ['Seconda call / demo', 'Preventivo Mandato / Follow Up']
-    vinti = ['Vinto Abbonamento Mensile', 'Vinto Abbonamento Annuale', 'Vinto mensile con acc.impresa', 'Vinto annuale con acc.impresa', 'Vinti generici']
-    persi = ['Non Pronto (in target)', 'Cliente Non vinto ']
 
     period = end_date - start_date + timedelta(days=1)
 
