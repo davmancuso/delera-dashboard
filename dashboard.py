@@ -106,10 +106,15 @@ def get_metric_delta(current, previous):
 # Data retrieving
 # ------------------------------
 def api_retrieving(data_source, fields, start_date, end_date):
-    url = st.secrets.source + data_source + "?api_key=" + st.secrets.api_key + "&date_from=" + str(start_date) + "&date_to=" + str(end_date) + "&fields=" + fields + "&_renderer=json"
-    response = urlopen(url)
-    data_json = json.loads(response.read())
-    return pd.json_normalize(data_json, record_path=["data"])
+    url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
+    
+    with urlopen(url) as response:
+        data_json = json.load(response)
+    
+    df_raw = pd.json_normalize(data_json, record_path=["data"])
+    df_raw["date"] = pd.to_datetime(df_raw["date"]).dt.date
+    
+    return df_raw
 
 def opp_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()
@@ -904,17 +909,6 @@ if st.button("Scarica i dati") & privacy:
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
-    # Data retrival
-    # ------------------------------
-    df_meta_raw = api_retrieving('facebook', FIELDS['meta'], comparison_start, end_date)
-    df_meta_raw["date"] = pd.to_datetime(df_meta_raw["date"]).dt.date
-
-    df_gads_raw = api_retrieving('google_ads', FIELDS['gads'], comparison_start, end_date)
-    df_gads_raw["date"] = pd.to_datetime(df_gads_raw["date"]).dt.date
-
-    df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
-    df_ganalytics_raw["date"] = pd.to_datetime(df_ganalytics_raw["date"]).dt.date
-    
     pool = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="mypool",
         pool_size=5,
@@ -925,6 +919,14 @@ if st.button("Scarica i dati") & privacy:
         database=st.secrets["database"],
         auth_plugin='caching_sha2_password'
     )
+
+    # Data retrival
+    # ------------------------------
+    df_meta_raw = api_retrieving('facebook', FIELDS['meta'], comparison_start, end_date)
+
+    df_gads_raw = api_retrieving('google_ads', FIELDS['gads'], comparison_start, end_date)
+
+    df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
     
     df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
     df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
