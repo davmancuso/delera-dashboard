@@ -1,58 +1,72 @@
 import pandas as pd
 from config import STAGES
 
-class DataAnalyzer:
+class BaseAnalyzer:
     def __init__(self, start_date, end_date, comparison_start, comparison_end):
         self.start_date = start_date
         self.end_date = end_date
         self.comparison_start = comparison_start
         self.comparison_end = comparison_end
 
-    def analyze_meta(self, df_meta, df_meta_comp):
-        results = {
-            'spesa_totale': df_meta["spend"].sum(),
-            'impression': df_meta["impressions"].sum(),
-            'click': df_meta["outbound_clicks_outbound_click"].sum(),
-            'campagne_attive': df_meta["campaign"].nunique()
-        }
+class MetaAnalyzer(BaseAnalyzer):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end, meta_account):
+        super().__init__(start_date, end_date, comparison_start, comparison_end)
+        self.meta_account = meta_account
+    
+    def clean_data(self, df, is_comparison=False):
+        start = self.comparison_start if is_comparison else self.start_date
+        end = self.comparison_end if is_comparison else self.end_date
         
-        results_comp = {
-            'spesa_totale': df_meta_comp["spend"].sum(),
-            'impression': df_meta_comp["impressions"].sum(),
-            'click': df_meta_comp["outbound_clicks_outbound_click"].sum(),
-            'campagne_attive': df_meta_comp["campaign"].nunique()
+        return df.loc[
+            (df["datasource"] == "facebook") &
+            (df["account_name"] == self.meta_account) &
+            (df["date"] >= start) &
+            (df["date"] <= end) &
+            (~df["campaign"].str.contains(r"\[HR\]")) &
+            (~df["campaign"].str.contains(r"DENTALAI"))
+        ]
+    
+    def aggregate_results(self, df):
+        aggregate_results = {
+            'spesa_totale': df["spend"].sum(),
+            'impression': df["impressions"].sum(),
+            'click': df["outbound_clicks_outbound_click"].sum(),
+            'campagne_attive': df["campaign"].nunique(),
+            'spesa_giornaliera': df.groupby('date')['spend'].sum().reset_index(),
+            'dettaglio_campagne': self.get_campaign_details(df)
         }
-        
-        for r in [results, results_comp]:
+
+        for r in [aggregate_results]:
             r['cpm'] = r['spesa_totale'] / r['impression'] * 1000 if r['impression'] != 0 else 0
             r['ctr'] = (r['click'] / r['impression']) * 100 if r['impression'] != 0 else 0
             r['cpc'] = r['spesa_totale'] / r['click'] if r['click'] != 0 else 0
+        
+        return aggregate_results
+
+    def analyze(self, df_meta_raw):
+        df_meta = self.clean_data(df_meta_raw)
+        df_meta_comp = self.clean_data(df_meta_raw, is_comparison=True)
+
+        results = self.aggregate_results(df_meta)
+        results_comp = self.aggregate_results(df_meta_comp)
 
         return results, results_comp
+    
+    def get_campaign_details(self, df):
+        dettaglioCampagne = df.groupby('campaign').agg({
+            'spend': 'sum',
+            'impressions': 'sum',
+            'outbound_clicks_outbound_click': 'sum'
+        }).reset_index()
 
-    def analyze_gads(self, df_gads, df_gads_comp):
-        # Implementa l'analisi di Google Ads qui
-        pass
+        dettaglioCampagne.rename(columns={
+            'campaign': 'Campagna',
+            'spend': 'Spesa',
+            'impressions': 'Impression',
+            'outbound_clicks_outbound_click': 'Click'
+        }, inplace=True)
 
-    def analyze_opportunities(self, df_opp, df_opp_comp):
-        results = {
-            'lead_da_qualificare': df_opp[df_opp['stage'].isin(STAGES['daQualificare'])].shape[0],
-            'lead_da_qualificare_comp': df_opp_comp[df_opp_comp['stage'].isin(STAGES['daQualificare'])].shape[0],
-            'lead_qualificati': df_opp[df_opp['stage'].isin(STAGES['qualificati'])].shape[0],
-            'lead_qualificati_comp': df_opp_comp[df_opp_comp['stage'].isin(STAGES['qualificati'])].shape[0],
-            'vendite': df_opp[df_opp['stage'].isin(STAGES['vinti'])].shape[0],
-            'vendite_comp': df_opp_comp[df_opp_comp['stage'].isin(STAGES['vinti'])].shape[0]
-        }
-        
-        period_days = (self.end_date - self.start_date).days
-        results['lead_qualificati_giorno'] = results['lead_qualificati'] / period_days
-        results['lead_qualificati_giorno_comp'] = results['lead_qualificati_comp'] / period_days
-        
-        results['vendite_giorno'] = results['vendite'] / period_days
-        results['vendite_giorno_comp'] = results['vendite_comp'] / period_days
+        dettaglioCampagne['CTR'] = dettaglioCampagne['Click'] / dettaglioCampagne['Impression'] * 100 if dettaglioCampagne['Impression'] != 0 else 0
+        dettaglioCampagne['CPC'] = dettaglioCampagne['Spesa'] / dettaglioCampagne['Click'] if dettaglioCampagne['Click'] != 0 else 0
 
-        return results
-
-    def analyze_economics(self, df_opp, df_opp_comp, df_meta, df_meta_comp, df_gads, df_gads_comp):
-        # Implementa l'analisi economica qui
-        pass
+        return dettaglioCampagne

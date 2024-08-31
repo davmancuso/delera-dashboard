@@ -9,7 +9,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from config import STAGES, FIELDS
-from data_analyzer import DataAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer
+from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
+from data_retrieval import api_retrieving, opp_retrieving, lead_retrieving
+from data_visualization import meta_analysis
 
 # ------------------------------
 #             STYLE
@@ -69,228 +72,6 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nM
 # ------------------------------
 #          FUNCTIONS
 # ------------------------------
-
-# Globali
-# ------------------------------
-locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
-
-def currency(value):
-    integer_part, decimal_part = f"{value:,.2f}".split(".")
-    integer_part = integer_part.replace(",", ".")
-    formatted_value = f"€ {integer_part},{decimal_part}"
-    return formatted_value
-
-def percentage(value):
-    integer_part, decimal_part = f"{value:,.2f}".split(".")
-    integer_part = integer_part.replace(",", ".")
-    formatted_value = f"{integer_part},{decimal_part}%"
-    return formatted_value
-
-def thousand_0(value):
-    integer_part, decimal_part = f"{value:,.2f}".split(".")
-    integer_part = integer_part.replace(",", ".")
-    formatted_value = f"{integer_part}"
-    return formatted_value
-
-def thousand_2(value):
-    integer_part, decimal_part = f"{value:,.2f}".split(".")
-    integer_part = integer_part.replace(",", ".")
-    formatted_value = f"{integer_part},{decimal_part}"
-    return formatted_value
-
-def get_metric_delta(current, previous):
-    if previous == 0:
-        return "-"
-    return percentage((current - previous) / previous * 100)
-
-# Data retrieving
-# ------------------------------
-def api_retrieving(data_source, fields, start_date, end_date):
-    url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
-    
-    with urlopen(url) as response:
-        data_json = json.load(response)
-    
-    df_raw = pd.json_normalize(data_json, record_path=["data"])
-    df_raw["date"] = pd.to_datetime(df_raw["date"]).dt.date
-    
-    return df_raw
-
-def opp_retrieving(pool, start_date, end_date):
-    conn = pool.get_connection()
-    cursor = conn.cursor()
-    
-    query = f"""
-                SELECT
-                    o.createdAt,
-                    o.lastStageChangeAt,
-                    o.monetaryValue,
-                    ops.name AS stage
-                FROM
-                    opportunities o
-                JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
-                WHERE
-                    o.locationId='{st.secrets.id_cliente}'
-                    AND ops.pipelineId='{st.secrets.pipeline_vendita}'
-                    AND o.createdAt >= '{start_date}T00:00:00.000Z'
-                    AND o.createdAt <= '{end_date}T23:59:59.999Z'
-                ORDER BY
-                    o.createdAt;
-            """
-
-    cursor.execute(query)
-
-    df_raw = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return pd.DataFrame(df_raw, columns=cursor.column_names)
-
-def lead_retrieving(pool, start_date, end_date):
-    conn = pool.get_connection()
-    cursor = conn.cursor()
-    
-    query = f"""
-                SELECT
-                    contacts.email,
-                    sub_account_custom_fields.name AS custom_field_name,
-                    FROM_UNIXTIME(contact_custom_fields.value / 1000, '%d/%m/%Y') AS custom_field_value,
-                    additional_custom_field.value AS additional_custom_field_value,
-                    opportunity_pipeline_stages.name AS pipeline_stage_name
-                FROM
-                    contacts
-                    JOIN contact_custom_fields ON contacts.id = contact_custom_fields.contactId
-                    JOIN sub_account_custom_fields ON contact_custom_fields.id = sub_account_custom_fields.id
-                    LEFT JOIN contact_custom_fields AS additional_custom_field
-                        ON contacts.id = additional_custom_field.contactId
-                        AND additional_custom_field.id = 'UiALy82OthZAitbSZTOU'
-                    LEFT JOIN opportunities ON contacts.id = opportunities.contactId
-                    LEFT JOIN opportunity_pipeline_stages ON opportunities.pipelineStageId = opportunity_pipeline_stages.id
-                WHERE
-                    sub_account_custom_fields.locationId = '{st.secrets.id_cliente}'
-                    AND sub_account_custom_fields.id = 'ok7yK4uSS6wh0S2DnZrz'
-                    AND FROM_UNIXTIME(contact_custom_fields.value / 1000, '%Y-%m-%d') BETWEEN {start_date} AND {end_date};
-            """
-
-    cursor.execute(query)
-
-    df_raw = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return pd.DataFrame(df_raw, columns=cursor.column_names)
-
-# Meta
-# ------------------------------
-def meta_analysis(df, df_comp):
-    st.title("Analisi delle campagne Meta")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        spesa_totale_delta = get_metric_delta(df["spend"].sum(), df_comp["spend"].sum())
-        st.metric("Spesa totale", currency(df["spend"].sum()), spesa_totale_delta)
-
-        col1_1, col1_2, col1_3 = st.columns(3)
-        with col1_1:
-            campagne_attive_delta = get_metric_delta(df["campaign"].nunique(), df_comp["campaign"].nunique())
-            st.metric("Campagne attive", df["campaign"].nunique(), campagne_attive_delta)
-
-            cpm_current = df["spend"].sum() / df["impressions"].sum() * 1000 if df["impressions"].sum() != 0 else 0
-            cpm_comp = df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000 if df_comp["impressions"].sum() != 0 else 0
-            cpm_delta = get_metric_delta(cpm_current, cpm_comp)
-            st.metric("CPM", currency(cpm_current) if cpm_current != 0 else "-", cpm_delta, delta_color="inverse")
-        with col1_2:
-            impression_delta = get_metric_delta(df["impressions"].sum(), df_comp["impressions"].sum())
-            st.metric("Impression", thousand_0(df["impressions"].sum()), impression_delta)
-
-            ctr_current = (df["outbound_clicks_outbound_click"].sum() / df["impressions"].sum()) * 100 if df["impressions"].sum() != 0 else 0
-            ctr_comp = (df_comp["outbound_clicks_outbound_click"].sum() / df_comp["impressions"].sum()) * 100 if df_comp["impressions"].sum() != 0 else 0
-            ctr_delta = get_metric_delta(ctr_current, ctr_comp)
-            st.metric("CTR", percentage(ctr_current) if ctr_current != 0 else "-", ctr_delta)
-        with col1_3:
-            click_delta = get_metric_delta(df["outbound_clicks_outbound_click"].sum(), df_comp["outbound_clicks_outbound_click"].sum())
-            st.metric("Click", thousand_0(df["outbound_clicks_outbound_click"].sum()), click_delta)
-
-            cpc_current = df["outbound_clicks_outbound_click"].sum() / df["spend"].sum() if df["spend"].sum() != 0 else 0
-            cpc_comp = df_comp["outbound_clicks_outbound_click"].sum() / df_comp["spend"].sum() if df_comp["spend"].sum() != 0 else 0
-            cpc_delta = get_metric_delta(cpc_current, cpc_comp)
-            st.metric("CPC", currency(cpc_current) if cpc_current != 0 else "-", cpc_delta, delta_color="inverse")
-    with col2:
-        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
-        daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
-
-        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
-        daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
-
-        daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
-        daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).apply(lambda x: x.days)
-
-        daily_spend_current['period'] = 'Periodo Corrente'
-        daily_spend_comp['period'] = 'Periodo Precedente'
-
-        combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
-
-        color_map = {
-            'Periodo Corrente': '#b12b94',
-            'Periodo Precedente': '#eb94d8'
-        }
-
-        hover_data = {
-            'period': True,
-            'date': '|%d/%m/%Y',
-            'spend': ':.2f',
-            'day': False
-        }
-
-        fig_spend = px.line(combined_spend, x='day', y='spend', color='period',
-                    title='Spesa giornaliera',
-                    markers=True,
-                    labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
-                    color_discrete_map=color_map,
-                    hover_data=hover_data)
-
-        fig_spend.update_traces(mode='lines+markers')
-        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
-        fig_spend.update_traces(
-            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>'
-        )
-        fig_spend.update_layout(
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.4,
-                xanchor="center",
-                x=0.5
-            )
-        )
-        
-        st.plotly_chart(fig_spend)
-    
-    st.title("Dettaglio delle campagne")
-
-    dettaglioCampagne = df.groupby('campaign').agg({
-        'spend': 'sum',
-        'impressions': 'sum',
-        'outbound_clicks_outbound_click': 'sum'
-    }).reset_index()
-
-    dettaglioCampagne.rename(columns={
-        'campaign': 'Campagna',
-        'spend': 'Spesa',
-        'impressions': 'Impression',
-        'outbound_clicks_outbound_click': 'Click'
-    }, inplace=True)
-
-    dettaglioCampagne['CTR'] = dettaglioCampagne['Click'] / dettaglioCampagne['Impression']
-    dettaglioCampagne['CPC'] = dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']
-
-    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].map('€ {:,.2f}'.format)
-    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].map('{:.2%}'.format)
-    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].map('€ {:,.2f}'.format)
-
-    st.dataframe(dettaglioCampagne)
 
 # Google
 # ------------------------------
@@ -890,6 +671,8 @@ def economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_
 # ------------------------------
 #             BODY
 # ------------------------------
+locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
+
 st.title("Parametri della analisi")
 
 st.subheader("Selezionare il periodo desiderato")
@@ -937,28 +720,8 @@ if st.button("Scarica i dati") & privacy:
     
     # Data processing
     # ------------------------------
-    analyzer = DataAnalyzer(start_date, end_date, comparison_start, comparison_end)
-
-    # Meta
-    df_meta = df_meta_raw.loc[
-        (df_meta_raw["datasource"] == "facebook") &
-        (df_meta_raw["account_name"] == st.secrets["meta_account"]) &
-        (df_meta_raw["date"] >= start_date) &
-        (df_meta_raw["date"] <= end_date) &
-        (~df_meta_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_meta_raw["campaign"].str.contains(r"DENTALAI"))
-    ]
-
-    df_meta_comp = df_meta_raw.loc[
-        (df_meta_raw["datasource"] == "facebook") &
-        (df_meta_raw["account_name"] == st.secrets["meta_account"]) &
-        (df_meta_raw["date"] >= comparison_start) &
-        (df_meta_raw["date"] <= comparison_end) &
-        (~df_meta_raw["campaign"].str.contains(r"\[HR\]")) &
-        (~df_meta_raw["campaign"].str.contains(r"DENTALAI"))
-    ]
-
-    meta_results, meta_results_comp = analyzer.analyze_meta(df_meta, df_meta_comp)
+    meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])
+    meta_results, meta_results_comp = meta_analyzer.analyze(df_meta_raw)
 
     # Google ads
     df_gads = df_gads_raw.loc[
@@ -1013,9 +776,9 @@ if st.button("Scarica i dati") & privacy:
 
     # Data visualization
     # ------------------------------
-    economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_meta_comp, df_gads, df_gads_comp)
+    # economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_meta_comp, df_gads, df_gads_comp)
 
-    meta_analysis(df_meta, df_meta_comp)
+    meta_analysis(meta_results, meta_results_comp)
 
     gads_analysis(df_gads, df_gads_comp)
 
