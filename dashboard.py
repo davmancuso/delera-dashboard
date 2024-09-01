@@ -9,10 +9,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from config import STAGES, FIELDS
-from data_analyzer import BaseAnalyzer, MetaAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
 from data_retrieval import api_retrieving, opp_retrieving, lead_retrieving
-from data_visualization import meta_analysis
+from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis
 
 # ------------------------------
 #             STYLE
@@ -72,269 +72,9 @@ st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nM
 # ------------------------------
 #          FUNCTIONS
 # ------------------------------
-
-# Google
-# ------------------------------
-def gads_analysis(df, df_comp):
-    st.title("Analisi delle campagne Google")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        spesaTot_delta = get_metric_delta(df["spend"].sum(), df_comp["spend"].sum())
-        st.metric("Spesa totale", currency(df["spend"].sum()), spesaTot_delta)
-
-        col1_1, col1_2, col1_3 = st.columns(3)
-        with col1_1:
-            campagne_delta = get_metric_delta(df["campaign"].nunique(), df_comp["campaign"].nunique())
-            st.metric("Campagne attive", df["campaign"].nunique(), campagne_delta)
-
-            cpm_current = df["spend"].sum() / df["impressions"].sum() * 1000 if df["impressions"].sum() != 0 else 0
-            cpm_comp = df_comp["spend"].sum() / df_comp["impressions"].sum() * 1000 if df_comp["impressions"].sum() != 0 else 0
-            cpm_delta = get_metric_delta(cpm_current, cpm_comp)
-            st.metric("CPM", currency(cpm_current) if cpm_current != 0 else "-", cpm_delta, delta_color="inverse")
-
-        with col1_2:
-            impression_delta = get_metric_delta(df["impressions"].sum(), df_comp["impressions"].sum())
-            st.metric("Impression", thousand_0(df["impressions"].sum()), impression_delta)
-
-            ctr_current = (df["clicks"].sum() / df["impressions"].sum()) * 100 if df["impressions"].sum() != 0 else 0
-            ctr_comp = (df_comp["clicks"].sum() / df_comp["impressions"].sum()) * 100 if df_comp["impressions"].sum() != 0 else 0
-            ctr_delta = get_metric_delta(ctr_current, ctr_comp)
-            st.metric("CTR", percentage(ctr_current) if ctr_current != 0 else "-", ctr_delta)
-
-        with col1_3:
-            click_delta = get_metric_delta(df["clicks"].sum(), df_comp["clicks"].sum())
-            st.metric("Click", thousand_0(df["clicks"].sum()), click_delta)
-
-            cpc_current = df["clicks"].sum() / df["spend"].sum() if df["spend"].sum() != 0 else 0
-            cpc_comp = df_comp["clicks"].sum() / df_comp["spend"].sum() if df_comp["spend"].sum() != 0 else 0
-            cpc_delta = get_metric_delta(cpc_current, cpc_comp)
-            st.metric("CPC", currency(cpc_current) if cpc_current != 0 else "-", cpc_delta, delta_color="inverse")
-    with col2:
-        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
-        daily_spend_current = df.groupby('date')['spend'].sum().reset_index()
-
-        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
-        daily_spend_comp = df_comp.groupby('date')['spend'].sum().reset_index()
-
-        daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).apply(lambda x: x.days)
-        daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).apply(lambda x: x.days)
-
-        daily_spend_current['period'] = 'Periodo Corrente'
-        daily_spend_comp['period'] = 'Periodo Precedente'
-
-        combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
-
-        color_map = {
-            'Periodo Corrente': '#b12b94',
-            'Periodo Precedente': '#eb94d8'
-        }
-
-        hover_data = {
-            'period': True,
-            'date': '|%d/%m/%Y',
-            'spend': ':.2f',
-            'day': False
-        }
-
-        fig_spend = px.line(combined_spend, x='day', y='spend', color='period',
-                    title='Spesa giornaliera',
-                    markers=True,
-                    labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo', 'date': 'Data'},
-                    color_discrete_map=color_map,
-                    hover_data=hover_data)
-
-        fig_spend.update_traces(mode='lines+markers')
-        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
-        fig_spend.update_traces(
-            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>'
-        )
-        fig_spend.update_layout(
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.4,
-                xanchor="center",
-                x=0.5
-            )
-        )
-        
-        st.plotly_chart(fig_spend)
-    
-    st.title("Dettaglio delle campagne")
-
-    dettaglioCampagne = df.groupby('campaign').agg({
-        'spend': 'sum',
-        'impressions': 'sum',
-        'clicks': 'sum'
-    }).reset_index()
-
-    dettaglioCampagne.rename(columns={
-        'campaign': 'Campagna',
-        'spend': 'Spesa',
-        'impressions': 'Impression',
-        'clicks': 'Click'
-    }, inplace=True)
-
-    dettaglioCampagne['CTR'] = dettaglioCampagne['Click'] / dettaglioCampagne['Impression']
-    dettaglioCampagne['CPC'] = dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']
-
-    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].map('€ {:,.2f}'.format)
-    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].map('{:.2%}'.format)
-    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].map('€ {:,.2f}'.format)
-
-    st.dataframe(dettaglioCampagne)
-
-def ganalytics_analysis(df, df_comp):
-    st.title("Analisi del traffico")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        active_user_delta = get_metric_delta(df["active_users"].sum(), df_comp["active_users"].sum())
-        st.metric("Utenti attivi", thousand_0(df["active_users"].sum()), active_user_delta)
-
-        col1_1, col1_2, col1_3 = st.columns(3)
-        with col1_1:
-            sessioni_delta = get_metric_delta(df["sessions"].sum(), df_comp["sessions"].sum())
-            st.metric("Sessioni", thousand_0(df["sessions"].sum()), sessioni_delta)
-
-            sessions_users_current = df["sessions"].sum() / df["active_users"].sum() if df["active_users"].sum() != 0 else 0
-            sessions_users_comp = df_comp["sessions"].sum() / df_comp["active_users"].sum() if df_comp["active_users"].sum() != 0 else 0
-            sessions_users_delta = get_metric_delta(sessions_users_current, sessions_users_comp)
-            st.metric("Sessioni per utente attivo", thousand_2(sessions_users_current) if sessions_users_current != 0 else "-", sessions_users_delta)
-
-        with col1_2:
-            sessioni_engaged_delta = get_metric_delta(df["engaged_sessions"].sum(), df_comp["engaged_sessions"].sum())
-            st.metric("Sessioni con engage", thousand_0(df["engaged_sessions"].sum()), sessioni_engaged_delta)
-
-            durata_sessione_current = df["user_engagement_duration"].sum() / df["sessions"].sum() if df["sessions"].sum() != 0 else 0
-            durata_sessione_comp = df_comp["user_engagement_duration"].sum() / df_comp["sessions"].sum() if df_comp["sessions"].sum() != 0 else 0
-            durata_sessione_delta = get_metric_delta(durata_sessione_current, durata_sessione_comp)
-            st.metric("Durata media sessione (sec)", thousand_2(durata_sessione_current) if durata_sessione_current != 0 else "-", durata_sessione_delta)
-
-        with col1_3:
-            engage_rate_current = df["engaged_sessions"].sum() / df["sessions"].sum() if df["sessions"].sum() != 0 else 0
-            engage_rate_comp = df_comp["engaged_sessions"].sum() / df_comp["sessions"].sum() if df_comp["sessions"].sum() != 0 else 0
-            engage_delta = get_metric_delta(engage_rate_current, engage_rate_comp)
-            st.metric("Tasso di engage", percentage(engage_rate_current) if engage_rate_current != 0 else "-", engage_delta)
-
-            tempo_user_current = df["user_engagement_duration"].sum() / df["active_users"].sum() if df["active_users"].sum() != 0 else 0
-            tempo_user_comp = df_comp["user_engagement_duration"].sum() / df_comp["active_users"].sum() if df_comp["active_users"].sum() != 0 else 0
-            tempo_user_delta = get_metric_delta(tempo_user_current, tempo_user_comp)
-            st.metric("Tempo per utente (sec)", thousand_2(tempo_user_current) if tempo_user_current != 0 else "-", tempo_user_delta)
-    with col2:
-        df.loc[:, 'date'] = pd.to_datetime(df['date']).dt.date
-        daily_users_current = df.groupby('date')['active_users'].sum().reset_index()
-
-        df_comp.loc[:, 'date'] = pd.to_datetime(df_comp['date']).dt.date
-        daily_users_comp = df_comp.groupby('date')['active_users'].sum().reset_index()
-
-        daily_users_current['day'] = (daily_users_current['date'] - daily_users_current['date'].min()).apply(lambda x: x.days)
-        daily_users_comp['day'] = (daily_users_comp['date'] - daily_users_comp['date'].min()).apply(lambda x: x.days)
-
-        daily_users_current['period'] = 'Periodo Corrente'
-        daily_users_comp['period'] = 'Periodo Precedente'
-
-        combined_users = pd.concat([daily_users_comp, daily_users_current])
-
-        color_map = {
-            'Periodo Corrente': '#b12b94',
-            'Periodo Precedente': '#eb94d8'
-        }
-
-        hover_data = {
-            'period': True,
-            'date': '|%d/%m/%Y',
-            'active_users': ':.0f',
-            'day': False
-        }
-
-        fig_spend = px.line(combined_users, x='day', y='active_users', color='period',
-                    title='Utenti attivi',
-                    markers=True,
-                    labels={'day': 'Giorno relativo al periodo', 'active_users': 'Utenti attivi', 'period': 'Periodo', 'date': 'Data'},
-                    color_discrete_map=color_map,
-                    hover_data=hover_data)
-
-        fig_spend.update_traces(mode='lines+markers')
-        fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
-        fig_spend.update_traces(
-            hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Utenti attivi: %{y:.0f}<extra></extra>'
-        )
-        fig_spend.update_layout(
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.4,
-                xanchor="center",
-                x=0.5
-            )
-        )
-        
-        st.plotly_chart(fig_spend)
-
-    st.title("Analisi del traffico")
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        google = df[df['source'].str.contains('google') & ~df['source'].str.contains('googleads')]
-        google_ads = df[df['source'].str.contains('googleads')]
-        meta_ads = df[df['source'].str.contains('facebook|instagram')]
-        youtube = df[df['source'].str.contains('youtube')]
-        traffico_diretto = df[df['source'].str.contains(r'\(direct\)')]
-        fonti_sconosciute = df[df['source'].str.contains(r'\(not set\)')]
-        altre_fonti = df[~df['source'].str.contains('google|googleads|facebook|instagram|youtube|\\(direct\\)|\\(not set\\)')]
-
-        session_groups = {
-            "google": google['sessions'].sum(),
-            "google_ads": google_ads['sessions'].sum(),
-            "meta_ads": meta_ads['sessions'].sum(),
-            "youtube": youtube['sessions'].sum(),
-            "traffico diretto": traffico_diretto['sessions'].sum(),
-            "fonti sconosciute": fonti_sconosciute['sessions'].sum(),
-            "altre fonti": altre_fonti['sessions'].sum()
-        }
-
-        session_df = pd.DataFrame(list(session_groups.items()), columns=['source_group', 'sessions'])
-
-        total_sessions = session_df['sessions'].sum()
-        if total_sessions == 0:
-            session_df['percentage'] = 0.00
-        else:
-            session_df['percentage'] = (session_df['sessions'] / total_sessions) * 100
-
-        source_session_soglia = 3.00
-        main_groups = session_df[session_df['percentage'] >= source_session_soglia].copy()
-
-        fig_session_pie = px.pie(main_groups, values='sessions', names='source_group', title='Distribuzione delle sessioni per fonte')
-
-        fig_session_pie.update_traces(
-            hovertemplate='Fonte: %{label}<br>Sessioni: %{value}<extra></extra>'
-        )
-
-        st.plotly_chart(fig_session_pie)
-        st.write(f'Valore di soglia: {source_session_soglia}%')
-    with col4:
-        campaign_sessions = df.groupby('campaign')['sessions'].sum().reset_index()
-
-        total_campaign_sessions = campaign_sessions['sessions'].sum()
-        if total_campaign_sessions == 0:
-            campaign_sessions['percentage'] = 0.00
-        else:
-            campaign_sessions['percentage'] = (campaign_sessions['sessions'] / total_campaign_sessions) * 100
-
-        campaign_session_soglia = 3.00
-        main_groups = campaign_sessions[campaign_sessions['percentage'] >= campaign_session_soglia].copy()
-
-        fig_campaign = px.pie(main_groups, values='sessions', names='campaign', title='Distribuzione delle sessioni per campagna')
-
-        fig_campaign.update_traces(
-            hovertemplate='Campagna: %{label}<br>Sessioni: %{value}<extra></extra>'
-        )
-
-        st.plotly_chart(fig_campaign)
-        st.write(f'Valore di soglia: {campaign_session_soglia}%')
+def clear_all_cache():
+    st.cache_data.clear()
+    st.cache_resource.clear()
 
 # Database
 # ------------------------------
@@ -685,23 +425,23 @@ with col_date2:
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
 if st.button("Scarica i dati") & privacy:
-    st.cache_data.clear()
+    clear_all_cache()
 
     period = end_date - start_date + timedelta(days=1)
 
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
-    pool = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="mypool",
-        pool_size=5,
-        host=st.secrets["host"],
-        port=st.secrets["port"],
-        user=st.secrets["username"],
-        password=st.secrets["password"],
-        database=st.secrets["database"],
-        auth_plugin='caching_sha2_password'
-    )
+    # pool = mysql.connector.pooling.MySQLConnectionPool(
+    #     pool_name="mypool",
+    #     pool_size=5,
+    #     host=st.secrets["host"],
+    #     port=st.secrets["port"],
+    #     user=st.secrets["username"],
+    #     password=st.secrets["password"],
+    #     database=st.secrets["database"],
+    #     auth_plugin='caching_sha2_password'
+    # )
 
     # Data retrival
     # ------------------------------
@@ -711,9 +451,9 @@ if st.button("Scarica i dati") & privacy:
 
     df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
     
-    df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
-    df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
-    df_opp_raw['lastStageChangeAt'] = pd.to_datetime(df_opp_raw['lastStageChangeAt']).dt.date
+    # df_opp_raw = opp_retrieving(pool, comparison_start, end_date)
+    # df_opp_raw['createdAt'] = pd.to_datetime(df_opp_raw['createdAt']).dt.date
+    # df_opp_raw['lastStageChangeAt'] = pd.to_datetime(df_opp_raw['lastStageChangeAt']).dt.date
     
     # df_lead_raw = lead_retrieving(pool, comparison_start, end_date)
     # df_lead_raw['custom_field_value'] = pd.to_datetime(df_lead_raw['custom_field_value'], format='%d/%m/%Y', errors='coerce')
@@ -723,56 +463,32 @@ if st.button("Scarica i dati") & privacy:
     meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])
     meta_results, meta_results_comp = meta_analyzer.analyze(df_meta_raw)
 
-    # Google ads
-    df_gads = df_gads_raw.loc[
-        (df_gads_raw["datasource"] == "google") &
-        (df_gads_raw["account_name"] == st.secrets["gads_account"]) &
-        (df_gads_raw["date"] >= start_date) &
-        (df_gads_raw["date"] <= end_date)
-    ]
-
-    df_gads_comp = df_gads_raw.loc[
-        (df_gads_raw["datasource"] == "google") &
-        (df_gads_raw["account_name"] == st.secrets["gads_account"]) &
-        (df_gads_raw["date"] >= comparison_start) &
-        (df_gads_raw["date"] <= comparison_end)
-    ]
-
-    # Google Analytics 4
-    df_ganalytics = df_ganalytics_raw.loc[
-        (df_ganalytics_raw["datasource"] == "googleanalytics4") &
-        (df_ganalytics_raw["account_name"] == st.secrets["ganalytics_account"]) &
-        (df_ganalytics_raw["date"] >= start_date) &
-        (df_ganalytics_raw["date"] <= end_date)
-    ]
-
-    df_ganalytics_comp = df_ganalytics_raw.loc[
-        (df_ganalytics_raw["datasource"] == "googleanalytics4") &
-        (df_ganalytics_raw["account_name"] == st.secrets["ganalytics_account"]) &
-        (df_ganalytics_raw["date"] >= comparison_start) &
-        (df_ganalytics_raw["date"] <= comparison_end)
-    ]
+    gads_analyzer = GadsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["gads_account"])
+    gads_results, gads_results_comp = gads_analyzer.analyze(df_gads_raw)
+    
+    ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["ganalytics_account"])
+    ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze(df_ganalytics_raw)
 
     # Database
-    df_opp = df_opp_raw.loc[
-        (df_opp_raw["createdAt"] >= start_date) &
-        (df_opp_raw["createdAt"] <= end_date)
-    ]
+    # df_opp = df_opp_raw.loc[
+    #     (df_opp_raw["createdAt"] >= start_date) &
+    #     (df_opp_raw["createdAt"] <= end_date)
+    # ]
 
-    df_opp_comp = df_opp_raw.loc[
-        (df_opp_raw["createdAt"] >= comparison_start) &
-        (df_opp_raw["createdAt"] <= comparison_end)
-    ]
+    # df_opp_comp = df_opp_raw.loc[
+    #     (df_opp_raw["createdAt"] >= comparison_start) &
+    #     (df_opp_raw["createdAt"] <= comparison_end)
+    # ]
 
-    df_opp_stage = df_opp_raw.loc[
-        (df_opp_raw["lastStageChangeAt"] >= start_date) &
-        (df_opp_raw["lastStageChangeAt"] <= end_date)
-    ]
+    # df_opp_stage = df_opp_raw.loc[
+    #     (df_opp_raw["lastStageChangeAt"] >= start_date) &
+    #     (df_opp_raw["lastStageChangeAt"] <= end_date)
+    # ]
 
-    df_opp_stage_comp = df_opp_raw.loc[
-        (df_opp_raw["lastStageChangeAt"] >= comparison_start) &
-        (df_opp_raw["lastStageChangeAt"] <= comparison_end)
-    ]
+    # df_opp_stage_comp = df_opp_raw.loc[
+    #     (df_opp_raw["lastStageChangeAt"] >= comparison_start) &
+    #     (df_opp_raw["lastStageChangeAt"] <= comparison_end)
+    # ]
 
     # Data visualization
     # ------------------------------
@@ -780,11 +496,11 @@ if st.button("Scarica i dati") & privacy:
 
     meta_analysis(meta_results, meta_results_comp)
 
-    gads_analysis(df_gads, df_gads_comp)
+    gads_analysis(gads_results, gads_results_comp)
 
-    opportunities(df_opp, df_opp_comp)
+    # opportunities(df_opp, df_opp_comp)
 
-    ganalytics_analysis(df_ganalytics, df_ganalytics_comp)
+    ganalytics_analysis(ganalytics_results, ganalytics_results_comp)
 
     # DA FARE: analisi dei flussi dei singoli funnel
     # DA FARE: aggiunta dell'attribuzione dei lead
