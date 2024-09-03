@@ -12,7 +12,7 @@ from config import STAGES, FIELDS
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppCreatedAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
 from data_retrieval import api_retrieving, opp_created_retrieving, lead_retrieving
-from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis, lead_analysis, performance_analysis, opp_analysis
+from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis, lead_analysis, performance_analysis, opp_analysis, economics_analysis
 
 # ------------------------------
 #             STYLE
@@ -131,8 +131,8 @@ if st.button("Scarica i dati") & privacy:
     ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["ganalytics_account"])
     ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze(df_ganalytics_raw)
 
-    opp_created_analyzer = OppCreatedAnalyzer(start_date, end_date, comparison_start, comparison_end)
-    opp_created_results, opp_created_results_comp = opp_created_analyzer.analyze(df_opp_raw)
+    opp_analyzer = OppCreatedAnalyzer(start_date, end_date, comparison_start, comparison_end)
+    opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
 
     df_opp_stage = df_opp_raw.loc[
         (df_opp_raw["lastStageChangeAt"] >= start_date) &
@@ -146,12 +146,12 @@ if st.button("Scarica i dati") & privacy:
 
     # Data visualization
     # ------------------------------
-    # economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_meta_comp, df_gads, df_gads_comp)
-    performance_analysis(opp_created_results, opp_created_results_comp)
+    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
+    performance_analysis(opp_results, opp_results_comp)
     meta_analysis(meta_results, meta_results_comp)
     gads_analysis(gads_results, gads_results_comp)
-    lead_analysis(opp_created_results, opp_created_results_comp)
-    opp_analysis(opp_created_results, opp_created_results_comp)
+    lead_analysis(opp_results, opp_results_comp)
+    opp_analysis(opp_results, opp_results_comp)
     ganalytics_analysis(ganalytics_results, ganalytics_results_comp)
 
     # DA FARE: analisi dei flussi dei singoli funnel

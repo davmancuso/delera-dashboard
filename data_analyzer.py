@@ -243,7 +243,8 @@ class OppCreatedAnalyzer(BaseAnalyzer):
             'persi': df[df['stage'].isin(STAGES['persi'])].shape[0],
             'lead_qualificati_giorno': self.lead_qualificati_giorno(df, is_comparison),
             'vinti_giorno': self.vinti_giorno(df, is_comparison),
-            'opp_per_giorno': self.opp_per_giorno(df, is_comparison)
+            'opp_per_giorno': self.opp_per_giorno(df, is_comparison),
+            'incasso': df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
         }
 
         for r in [aggregate_results]:
