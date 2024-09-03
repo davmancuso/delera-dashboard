@@ -15,7 +15,7 @@ def api_retrieving(data_source, fields, start_date, end_date):
     
     return df_raw
 
-def opp_retrieving(pool, start_date, end_date):
+def opp_created_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
@@ -44,7 +44,11 @@ def opp_retrieving(pool, start_date, end_date):
     cursor.close()
     conn.close()
 
-    return pd.DataFrame(df_raw, columns=cursor.column_names)
+    df_raw = pd.DataFrame(df_raw, columns=cursor.column_names)
+    df_raw['createdAt'] = pd.to_datetime(df_raw['createdAt']).dt.date
+    df_raw['lastStageChangeAt'] = pd.to_datetime(df_raw['lastStageChangeAt']).dt.date
+
+    return df_raw
 
 def lead_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()

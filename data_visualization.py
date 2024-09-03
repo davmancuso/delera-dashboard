@@ -319,3 +319,258 @@ def ganalytics_analysis(results, results_comp):
         ganalytics_session_distribution(results)
     with col4:
         ganalytics_campaign_distribution(results)
+
+# ------------------------------
+#             LEAD
+# ------------------------------
+def lead_metrics(results, results_comp):
+    leadDaQualificare_delta = get_metric_delta(results["lead_da_qualificare"], results_comp["lead_da_qualificare"])
+    st.metric("Lead da qualificare", results["lead_da_qualificare"], leadDaQualificare_delta)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        leadQualificati_delta = get_metric_delta(results["lead_qualificati"], results_comp["lead_qualificati"])
+        st.metric("Lead qualificati", results["lead_qualificati"], leadQualificati_delta)
+
+        leadVinti_delta = get_metric_delta(results["vendite"], results_comp["vendite"])
+        st.metric("Vendite", results["vendite"], leadVinti_delta)
+    with col2:
+        leadQualificatiGiorno_delta = get_metric_delta(results["lead_qualificati_giorno_metrics"], results_comp["lead_qualificati_giorno_metrics"])
+        st.metric("Lead qualificati al giorno", thousand_2(results["lead_qualificati_giorno_metrics"]), leadQualificatiGiorno_delta)
+
+        vintiPerGiorno_delta = get_metric_delta(results["vinti_giorno_metrics"], results_comp["vinti_giorno_metrics"])
+        st.metric("Vendite al giorno", thousand_2(results["vinti_giorno_metrics"]), vintiPerGiorno_delta)
+    with col3:
+        tassoQualifica_delta = get_metric_delta(results["tasso_qualifica"], results_comp["tasso_qualifica"])
+        st.metric("Tasso di qualifica", percentage(results["tasso_qualifica"]) if results["tasso_qualifica"] != 0 else "-", tassoQualifica_delta)
+
+        tassoVendita_delta = get_metric_delta(results["tasso_vendita"], results_comp["tasso_vendita"])
+        st.metric("Tasso di vendita", percentage(results["tasso_vendita"]) if results["tasso_vendita"] != 0 else "-", tassoVendita_delta)
+
+def lead_qualificati_chart(results, results_comp):
+    daily_qualificati_current = results['lead_qualificati_giorno']
+    daily_qualificati_comp = results_comp['lead_qualificati_giorno']
+
+    daily_qualificati_current['date'] = pd.to_datetime(daily_qualificati_current['date'])
+    daily_qualificati_comp['date'] = pd.to_datetime(daily_qualificati_comp['date'])
+
+    daily_qualificati_current['day'] = (daily_qualificati_current['date'] - daily_qualificati_current['date'].min()).apply(lambda x: x.days)
+    daily_qualificati_comp['day'] = (daily_qualificati_comp['date'] - daily_qualificati_comp['date'].min()).apply(lambda x: x.days)
+
+    daily_qualificati_current['period'] = 'Periodo Corrente'
+    daily_qualificati_comp['period'] = 'Periodo Precedente'
+
+    combined_qualificati = pd.concat([daily_qualificati_comp, daily_qualificati_current])
+
+    st.write("combined_qualificati:")
+    st.dataframe(combined_qualificati.head())
+
+    color_map = {
+        'Periodo Corrente': '#b12b94',
+        'Periodo Precedente': '#eb94d8'
+    }
+
+    hover_data = {
+        'period': True,
+        'date': '|%d/%m/%Y',
+        'count': ':.0f',
+        'day': False
+    }
+
+    fig_qualificati = px.line(combined_qualificati, x='day', y='count', color='period',
+                title='Lead qualificati',
+                markers=True,
+                labels={'day': 'Giorno relativo al periodo', 'count': 'Lead qualificati', 'period': 'Periodo', 'date': 'Data'},
+                color_discrete_map=color_map,
+                hover_data=hover_data)
+
+    fig_qualificati.update_traces(mode='lines+markers')
+    fig_qualificati.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+    fig_qualificati.update_traces(
+        hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Lead qualificati: %{y:.0f}<extra></extra>'
+    )
+    fig_qualificati.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.4,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    
+    st.plotly_chart(fig_qualificati)
+
+def lead_analysis(results, results_comp):
+    st.title("Stato dei lead")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        lead_metrics(results, results_comp)
+    with col2:
+        lead_qualificati_chart(results, results_comp)
+
+# ------------------------------
+#           PERFORMANCE
+# ------------------------------
+def performance_lead_qualificati_chart(results, results_comp):
+    lqPerDay_delta = (results['lead_qualificati_giorno_metrics'] - results_comp['lead_qualificati_giorno_metrics']) / results_comp['lead_qualificati_giorno_metrics'] * 100 if results_comp['lead_qualificati_giorno_metrics'] != 0 else 0
+    deltaColor_lqperday = "green" if lqPerDay_delta >= 0 else "red"
+
+    fig_lqperday = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=float(results['lead_qualificati_giorno_metrics'])/12*100,
+        number={'suffix': "%"},
+        delta={'reference': lqPerDay_delta, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'increasing': {'color': deltaColor_lqperday}, 'decreasing': {'color': deltaColor_lqperday}, 'font': {'size': 16}},
+        title={'text': "Lead qualificati al giorno: 12"},
+        gauge={
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "#b12b94"},
+            'steps': [
+                {'range': [0, 25], 'color': '#f0f2f6'},
+                {'range': [25, 50], 'color': '#f0f2f6'},
+                {'range': [50, 75], 'color': '#f0f2f6'},
+                {'range': [75, 100], 'color': '#f0f2f6'}
+            ],
+            'threshold': {
+                'line': {'color': "#1a1e1c", 'width': 4},
+                'thickness': 0.75,
+                'value': 100
+            }
+        }
+    ))
+    st.plotly_chart(fig_lqperday)
+
+def performance_vendite_chart(results, results_comp):
+    vintiPerDay_delta = (results["vinti_giorno_metrics"] - results_comp["vinti_giorno_metrics"]) / results_comp["vinti_giorno_metrics"] * 100 if results_comp["vinti_giorno_metrics"] != 0 else 0
+    deltaColor_vintiperday = "green" if vintiPerDay_delta >= 0 else "red"
+
+    fig_vintiperday = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=float(results["vinti_giorno_metrics"])/3*100,
+        number={'suffix': "%"},
+        delta={'reference': vintiPerDay_delta, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'increasing': {'color': deltaColor_vintiperday}, 'decreasing': {'color': deltaColor_vintiperday}, 'font': {'size': 16}},
+        title={'text': "Vendite al giorno: 3"},
+        gauge={
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "#b12b94"},
+            'steps': [
+                {'range': [0, 25], 'color': '#f0f2f6'},
+                {'range': [25, 50], 'color': '#f0f2f6'},
+                {'range': [50, 75], 'color': '#f0f2f6'},
+                {'range': [75, 100], 'color': '#f0f2f6'}
+            ],
+            'threshold': {
+                'line': {'color': "#1a1e1c", 'width': 4},
+                'thickness': 0.75,
+                'value': 100
+            }
+        }
+    ))
+    st.plotly_chart(fig_vintiperday)
+
+def performance_bleed_out_lead(results, results_comp):
+    st.subheader("Bleed out dei lead")
+
+    opportunitàPerse_df = results['opportunità_perse']
+    st.dataframe(opportunitàPerse_df.style.hide(axis='index'))
+
+def performance_analysis(results, results_comp):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        performance_lead_qualificati_chart(results, results_comp)
+    with col2:
+        performance_vendite_chart(results, results_comp)
+    with col3:
+        st.markdown("""
+        <hr style="height:0px;border-width: 0px;;margin-top:35px;">
+        """, unsafe_allow_html=True)
+
+        performance_bleed_out_lead(results, results_comp)
+
+# ------------------------------
+#         OPPORTUNITIES
+# ------------------------------
+def opp_metrics(results, results_comp):
+    opp_delta = get_metric_delta(results["totali"], results_comp["totali"])
+    st.metric("Opportunità", results["totali"], opp_delta)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        setting_delta = get_metric_delta(results["lead_da_qualificare"], results_comp["lead_da_qualificare"])
+        st.metric("Setting - Da gestire", thousand_0(results["lead_da_qualificare"]), setting_delta)
+
+        settingPersi_delta = get_metric_delta(results["setting_persi"], results_comp["setting_persi"])
+        st.metric("Setting - Persi", thousand_0(results["setting_persi"]), settingPersi_delta)
+    with col2:
+        vendite_delta = get_metric_delta(results["vendite_gestione"], results_comp["vendite_gestione"])
+        st.metric("Vendita - Da gestire", thousand_0(results["vendite_gestione"]), vendite_delta)
+
+        chiusura_delta = get_metric_delta(results["vendite_da_chiudere"], results_comp["vendite_da_chiudere"])
+        st.metric("Vendita - Da chiudere", thousand_0(results["vendite_da_chiudere"]), chiusura_delta)
+    with col3:
+        vinti_delta = get_metric_delta(results["vendite"], results_comp["vendite"])
+        st.metric("Vinti", thousand_0(results["vendite"]), vinti_delta)
+
+        persi_delta = get_metric_delta(results["persi"], results_comp["persi"])
+        st.metric("Persi", thousand_0(results["persi"]), persi_delta)
+
+def opp_per_giorno_chart(results, results_comp):
+    opp_per_giorno = results['opp_per_giorno']
+    opp_per_giorno_comp = results_comp['opp_per_giorno']
+
+    opp_per_giorno['date'] = pd.to_datetime(opp_per_giorno['date'])
+    opp_per_giorno_comp['date'] = pd.to_datetime(opp_per_giorno_comp['date'])
+
+    opp_per_giorno['day'] = (opp_per_giorno['date'] - opp_per_giorno['date'].min()).apply(lambda x: x.days)
+    opp_per_giorno_comp['day'] = (opp_per_giorno_comp['date'] - opp_per_giorno_comp['date'].min()).apply(lambda x: x.days)
+
+    opp_per_giorno['period'] = 'Periodo Corrente'
+    opp_per_giorno_comp['period'] = 'Periodo Precedente'
+
+    combined_opp = pd.concat([opp_per_giorno, opp_per_giorno_comp])
+
+    color_map = {
+        'Periodo Corrente': '#b12b94',
+        'Periodo Precedente': '#eb94d8'
+    }
+    
+    hover_data = {
+        'period': True,
+        'date': '|%d/%m/%Y',
+        'count': ':.0f',
+        'day': False
+    }
+    
+    fig_opp = px.line(combined_opp, x='day', y='count', color='period',
+                title='Opportunità per giorno',
+                markers=True,
+                labels={'day': 'Giorno relativo al periodo', 'count': 'Numero di Opportunità', 'period': 'Periodo', 'date': 'Data'},
+                color_discrete_map=color_map,
+                hover_data=hover_data)
+    
+    fig_opp.update_traces(mode='lines+markers')
+    fig_opp.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+    fig_opp.update_traces(
+        hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Numero di Opportunità: %{y:.0f}<extra></extra>'
+    )
+    fig_opp.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.4,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    
+    st.plotly_chart(fig_opp)
+
+def opp_analysis(results, results_comp):
+    st.title("Gestione delle opportunità")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        opp_metrics(results, results_comp)
+    with col2:
+        opp_per_giorno_chart(results, results_comp)
