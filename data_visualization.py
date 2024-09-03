@@ -575,43 +575,46 @@ def opp_analysis(results, results_comp):
 # ------------------------------
 #           ECONOMICS
 # ------------------------------
+def economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
+    spesa_tot = meta_results['spesa_totale'] + gads_results['spesa_totale']
+    spesa_tot_comp = meta_results_comp['spesa_totale'] + gads_results_comp['spesa_totale']
+    spesa_tot_delta = get_metric_delta(spesa_tot, spesa_tot_comp)
+    st.metric("Spesa pubblicitaria", currency(spesa_tot), spesa_tot_delta)
+    
+    col1_1, col1_2, col1_3 = st.columns(3)
+    with col1_1:
+        costo_per_lead = spesa_tot / opp_results['totali'] if opp_results['totali'] > 0 else 0
+        costo_per_lead_comp = spesa_tot_comp / opp_results_comp['totali'] if opp_results_comp['totali'] > 0 else 0
+        costo_per_lead_delta = get_metric_delta(costo_per_lead, costo_per_lead_comp)
+        st.metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
+    with col1_2:
+        costo_per_lead_qual = spesa_tot / opp_results['lead_qualificati'] if opp_results['lead_qualificati'] > 0 else 0
+        costo_per_lead_qual_comp = spesa_tot_comp / opp_results_comp['lead_qualificati'] if opp_results_comp['lead_qualificati'] > 0 else 0
+        costo_per_lead_qual_delta = get_metric_delta(costo_per_lead_qual, costo_per_lead_qual_comp)
+        st.metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
+    with col1_3:
+        costo_per_vendita = spesa_tot / opp_results['vendite'] if opp_results['vendite'] > 0 else 0
+        costo_per_vendita_comp = spesa_tot_comp / opp_results_comp['vendite'] if opp_results_comp['vendite'] > 0 else 0
+        costo_per_vendita_delta = get_metric_delta(costo_per_vendita, costo_per_vendita_comp)
+        st.metric("Costo per vendita", currency(costo_per_vendita) if costo_per_vendita != 0 else "-", costo_per_vendita_delta)
+    
+    col1_4, col1_5 = st.columns(2)
+    with col1_4:
+        incasso = opp_results['incasso']
+        incasso_comp = opp_results_comp['incasso']
+        incasso_delta = get_metric_delta(incasso, incasso_comp)
+        st.metric("Fatturato", currency(incasso), incasso_delta)
+    with col1_5:
+        roi = (incasso - spesa_tot) / spesa_tot * 100 if spesa_tot > 0 else 0
+        roi_comp = (incasso_comp - spesa_tot_comp) / spesa_tot_comp * 100 if spesa_tot_comp > 0 else 0
+        roi_delta = get_metric_delta(roi, roi_comp)
+        st.metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
+
 def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
     st.title("Performance economiche")
 
     col1, col2 = st.columns(2)
     with col1:
-        spesa_tot = meta_results['spesa_totale'] + gads_results['spesa_totale']
-        spesa_tot_comp = meta_results_comp['spesa_totale'] + gads_results_comp['spesa_totale']
-        spesa_tot_delta = get_metric_delta(spesa_tot, spesa_tot_comp)
-        st.metric("Spesa pubblicitaria", currency(spesa_tot), spesa_tot_delta)
-        
-        col1_1, col1_2, col1_3 = st.columns(3)
-        with col1_1:
-            costo_per_lead = spesa_tot / opp_results['totali'] if opp_results['totali'] > 0 else 0
-            costo_per_lead_comp = spesa_tot_comp / opp_results_comp['totali'] if opp_results_comp['totali'] > 0 else 0
-            costo_per_lead_delta = get_metric_delta(costo_per_lead, costo_per_lead_comp)
-            st.metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
-        with col1_2:
-            costo_per_lead_qual = spesa_tot / opp_results['lead_qualificati'] if opp_results['lead_qualificati'] > 0 else 0
-            costo_per_lead_qual_comp = spesa_tot_comp / opp_results_comp['lead_qualificati'] if opp_results_comp['lead_qualificati'] > 0 else 0
-            costo_per_lead_qual_delta = get_metric_delta(costo_per_lead_qual, costo_per_lead_qual_comp)
-            st.metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
-        with col1_3:
-            costo_per_vendita = spesa_tot / opp_results['vendite'] if opp_results['vendite'] > 0 else 0
-            costo_per_vendita_comp = spesa_tot_comp / opp_results_comp['vendite'] if opp_results_comp['vendite'] > 0 else 0
-            costo_per_vendita_delta = get_metric_delta(costo_per_vendita, costo_per_vendita_comp)
-            st.metric("Costo per vendita", currency(costo_per_vendita) if costo_per_vendita != 0 else "-", costo_per_vendita_delta)
-        
-        col1_4, col1_5 = st.columns(2)
-        with col1_4:
-            incasso = opp_results['incasso']
-            incasso_comp = opp_results_comp['incasso']
-            incasso_delta = get_metric_delta(incasso, incasso_comp)
-            st.metric("Fatturato", currency(incasso), incasso_delta)
-        with col1_5:
-            roi = (incasso - spesa_tot) / spesa_tot * 100 if spesa_tot > 0 else 0
-            roi_comp = (incasso_comp - spesa_tot_comp) / spesa_tot_comp * 100 if spesa_tot_comp > 0 else 0
-            roi_delta = get_metric_delta(roi, roi_comp)
-            st.metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
+        economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
     with col2:
         a = 0
