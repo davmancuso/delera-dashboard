@@ -117,9 +117,6 @@ if st.button("Scarica i dati") & privacy:
     df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
     df_opp_raw = opp_created_retrieving(pool, comparison_start, end_date)
     
-    # df_lead_raw = lead_retrieving(pool, comparison_start, end_date)
-    # df_lead_raw['custom_field_value'] = pd.to_datetime(df_lead_raw['custom_field_value'], format='%d/%m/%Y', errors='coerce')
-    
     # Data processing
     # ------------------------------
     meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])
@@ -133,16 +130,6 @@ if st.button("Scarica i dati") & privacy:
 
     opp_analyzer = OppCreatedAnalyzer(start_date, end_date, comparison_start, comparison_end)
     opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
-
-    df_opp_stage = df_opp_raw.loc[
-        (df_opp_raw["lastStageChangeAt"] >= start_date) &
-        (df_opp_raw["lastStageChangeAt"] <= end_date)
-    ]
-
-    df_opp_stage_comp = df_opp_raw.loc[
-        (df_opp_raw["lastStageChangeAt"] >= comparison_start) &
-        (df_opp_raw["lastStageChangeAt"] <= comparison_end)
-    ]
 
     # Data visualization
     # ------------------------------
