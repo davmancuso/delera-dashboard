@@ -362,9 +362,6 @@ def lead_qualificati_chart(results, results_comp):
 
     combined_qualificati = pd.concat([daily_qualificati_comp, daily_qualificati_current])
 
-    st.write("combined_qualificati:")
-    st.dataframe(combined_qualificati.head())
-
     color_map = {
         'Periodo Corrente': '#b12b94',
         'Periodo Precedente': '#eb94d8'
@@ -574,3 +571,92 @@ def opp_analysis(results, results_comp):
         opp_metrics(results, results_comp)
     with col2:
         opp_per_giorno_chart(results, results_comp)
+
+# ------------------------------
+#           ECONOMICS
+# ------------------------------
+def economics(df_opp, df_opp_comp, df_opp_stage, df_opp_stage_comp, df_meta, df_meta_comp, df_gads, df_gads_comp):
+    spesa_tot = df_meta["spend"].sum() + df_gads["spend"].sum()
+    spesa_tot_comp = df_meta_comp["spend"].sum() + df_gads_comp["spend"].sum()
+    spesa_tot_delta = (spesa_tot - spesa_tot_comp) / spesa_tot_comp * 100
+
+    incasso = df_opp[df_opp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+    incasso_comp = df_opp_comp[df_opp_comp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+    
+    incasso_stage = df_opp_stage[df_opp_stage['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+    incasso_stage_comp = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+
+    st.title("Performance economiche")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Per data di creazione")
+        
+        st.metric("Spesa pubblicitaria", currency(spesa_tot), percentage(spesa_tot_delta))
+        
+        col1_1, col1_2, col1_3 = st.columns(3)
+        with col1_1:
+            costo_per_lead = spesa_tot / len(df_opp) if len(df_opp) > 0 else 0
+            costo_per_lead_comp = spesa_tot_comp / len(df_opp_comp) if len(df_opp_comp) > 0 else 0
+            costo_per_lead_delta = get_metric_delta(costo_per_lead, costo_per_lead_comp)
+            st.metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
+        with col1_2:
+            costo_per_lead_qual = spesa_tot / df_opp[df_opp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp[df_opp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_comp = spesa_tot_comp / df_opp_comp[df_opp_comp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_comp[df_opp_comp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_delta = get_metric_delta(costo_per_lead_qual, costo_per_lead_qual_comp)
+            st.metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
+        with col1_3:
+            vendite_correnti = df_opp[df_opp['stage'].isin(STAGES['vinti'])].shape[0]
+            vendite_precedenti = df_opp_comp[df_opp_comp['stage'].isin(STAGES['vinti'])].shape[0]
+
+            costo_per_vendita = spesa_tot / vendite_correnti if vendite_correnti > 0 else 0
+            costo_per_vendita_comp = spesa_tot_comp / vendite_precedenti if vendite_precedenti > 0 else 0
+            costo_per_vendita_delta = get_metric_delta(costo_per_vendita, costo_per_vendita_comp)
+            st.metric("Costo per vendita", currency(costo_per_vendita) if costo_per_vendita != 0 else "-", costo_per_vendita_delta)
+        
+        col1_4, col1_5 = st.columns(2)
+        with col1_4:
+            incasso_delta = get_metric_delta(incasso, incasso_comp)
+            st.metric("Fatturato", currency(incasso), incasso_delta)
+        with col1_5:
+            roi = (incasso - spesa_tot) / spesa_tot * 100 if spesa_tot > 0 else 0
+            roi_comp = (incasso_comp - spesa_tot_comp) / spesa_tot_comp * 100 if spesa_tot_comp > 0 else 0
+            roi_delta = get_metric_delta(roi, roi_comp)
+            st.metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
+    with col2:
+        st.subheader("Per data di cambio stage")
+        
+        st.metric("Spesa pubblicitaria", currency(spesa_tot), percentage(spesa_tot_delta))
+        
+        col2_1, col2_2, col2_3 = st.columns(3)
+        with col2_1:
+            costo_per_lead_stage = spesa_tot / len(df_opp_stage) if len(df_opp_stage) > 0 else 0
+            costo_per_lead_stage_comp = spesa_tot_comp / len(df_opp_stage_comp) if len(df_opp_stage_comp) > 0 else 0
+            costo_per_lead_stage_delta = get_metric_delta(costo_per_lead_stage, costo_per_lead_stage_comp)
+            st.metric("Costo per lead", currency(costo_per_lead_stage) if costo_per_lead_stage != 0 else "-", costo_per_lead_stage_delta)
+
+        with col2_2:
+            costo_per_lead_qual_stage = spesa_tot / df_opp_stage[df_opp_stage['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_stage[df_opp_stage['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_stage_comp = spesa_tot_comp / df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['qualificati'])].shape[0] if df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['qualificati'])].shape[0] > 0 else 0
+            costo_per_lead_qual_stage_delta = get_metric_delta(costo_per_lead_qual_stage, costo_per_lead_qual_stage_comp)
+            st.metric("Costo per lead qualificato", currency(costo_per_lead_qual_stage) if costo_per_lead_qual_stage != 0 else "-", costo_per_lead_qual_stage_delta)
+
+        with col2_3:
+            vendite_correnti_stage = df_opp_stage[df_opp_stage['stage'].isin(STAGES['vinti'])].shape[0]
+            vendite_precedenti_stage = df_opp_stage_comp[df_opp_stage_comp['stage'].isin(STAGES['vinti'])].shape[0]
+
+            costo_per_vendita_stage = spesa_tot / vendite_correnti_stage if vendite_correnti_stage > 0 else 0
+            costo_per_vendita_stage_comp = spesa_tot_comp / vendite_precedenti_stage if vendite_precedenti_stage > 0 else 0
+            costo_per_vendita_stage_delta = get_metric_delta(costo_per_vendita_stage, costo_per_vendita_stage_comp)
+            st.metric("Costo per vendita", currency(costo_per_vendita_stage) if costo_per_vendita_stage != 0 else "-", costo_per_vendita_stage_delta)
+
+        col2_4, col2_5 = st.columns(2)
+        with col2_4:
+            incasso_stage_delta = get_metric_delta(incasso_stage, incasso_stage_comp)
+            st.metric("Fatturato", currency(incasso_stage), incasso_stage_delta)
+
+        with col2_5:
+            roi_stage = (incasso_stage - spesa_tot) / spesa_tot * 100 if spesa_tot > 0 else 0
+            roi_stage_comp = (incasso_stage_comp - spesa_tot_comp) / spesa_tot_comp * 100 if spesa_tot_comp > 0 else 0
+            roi_stage_delta = get_metric_delta(roi_stage, roi_stage_comp)
+            st.metric("ROI", percentage(roi_stage) if roi_stage != 0 else "-", roi_stage_delta)
