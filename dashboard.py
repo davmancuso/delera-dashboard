@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from config import STAGES, FIELDS
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppCreatedAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
-from data_retrieval import api_retrieving, opp_created_retrieving, lead_retrieving
+from data_retrieval import api_retrieve_data, opp_retrieving, lead_retrieving
 from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis, lead_analysis, performance_analysis, opp_analysis, economics_analysis
 
 # ------------------------------
@@ -112,11 +112,21 @@ if st.button("Scarica i dati") & privacy:
 
     # Data retrival
     # ------------------------------
-    df_meta_raw = api_retrieving('facebook', FIELDS['meta'], comparison_start, end_date)
-    df_gads_raw = api_retrieving('google_ads', FIELDS['gads'], comparison_start, end_date)
-    df_ganalytics_raw = api_retrieving('googleanalytics4', FIELDS['ganalytics'], comparison_start, end_date)
-    df_opp_raw = opp_created_retrieving(pool, comparison_start, end_date)
-    
+    data_sources = [
+        ('facebook', FIELDS['meta'], 'df_meta_raw'),
+        ('google_ads', FIELDS['gads'], 'df_gads_raw'),
+        ('googleanalytics4', FIELDS['ganalytics'], 'df_ganalytics_raw'),
+    ]
+
+    for source, fields, df_name in data_sources:
+        globals()[df_name] = api_retrieve_data(source, fields, comparison_start, end_date)
+
+    try:
+        df_opp_raw = opp_retrieving(pool, start_date, end_date)
+    except Exception as e:
+        st.warning(f"Errore nel recupero dei dati da opportunità: {str(e)}")
+        df_opp_raw = pd.DataFrame()
+
     # Data processing
     # ------------------------------
     meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])

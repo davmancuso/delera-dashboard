@@ -15,7 +15,17 @@ def api_retrieving(data_source, fields, start_date, end_date):
     
     return df_raw
 
-def opp_created_retrieving(pool, start_date, end_date):
+def api_retrieve_data(source, fields, start_date, end_date):
+    try:
+        if source == 'opportunities':
+            return opp_created_retrieving(pool, start_date, end_date)
+        else:
+            return api_retrieving(source, fields, start_date, end_date)
+    except Exception as e:
+        st.warning(f"Errore nel recupero dei dati da {source}: {str(e)}")
+        return pd.DataFrame()
+
+def opp_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
