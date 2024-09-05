@@ -92,13 +92,23 @@ def meta_analysis(results, results_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        meta_metrics(results, results_comp)
+        try:
+            meta_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Meta: {str(e)}")
     with col2:
-        fig_spend = meta_spend_chart(results, results_comp)
-        st.plotly_chart(fig_spend)
+        try:
+            fig_spend = meta_spend_chart(results, results_comp)
+            st.plotly_chart(fig_spend)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Meta: {str(e)}")
     
     st.title("Dettaglio delle campagne")
-    meta_campaign_details(results['dettaglio_campagne'].copy())
+
+    try:
+        meta_campaign_details(results['dettaglio_campagne'].copy())
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione delle campagne su Meta: {str(e)}")
 
 # ------------------------------
 #           GOOGLE ADS
@@ -189,13 +199,23 @@ def gads_analysis(results, results_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        gads_metrics(results, results_comp)
+        try:
+            gads_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Google Ads: {str(e)}")
     with col2:
-        fig_spend = gads_spend_chart(results, results_comp)
-        st.plotly_chart(fig_spend)
+        try:
+            fig_spend = gads_spend_chart(results, results_comp)
+            st.plotly_chart(fig_spend)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Google Ads: {str(e)}")
     
     st.title("Dettaglio delle campagne")
-    gads_campaign_details(results['dettaglio_campagne'].copy())
+
+    try:
+        gads_campaign_details(results['dettaglio_campagne'].copy())
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione delle campange su Google Ads: {str(e)}")
 
 # ------------------------------
 #        GOOGLE ANALYTICS
@@ -307,18 +327,30 @@ def ganalytics_analysis(results, results_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        ganalytics_metrics(results, results_comp)
+        try:
+            ganalytics_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Google Analytics: {str(e)}")
     with col2:
-        fig_users = ganalytics_users_chart(results, results_comp)
+        try:
+            fig_users = ganalytics_users_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico degli utenti attivi su Google Analytics: {str(e)}")
 
     st.title("Analisi del traffico")
 
     col3, col4 = st.columns(2)
 
     with col3:
-        ganalytics_session_distribution(results)
+        try:
+            ganalytics_session_distribution(results)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico della distribuzione delle sessioni su Google Analytics: {str(e)}")
     with col4:
-        ganalytics_campaign_distribution(results)
+        try:
+            ganalytics_campaign_distribution(results)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico della distribuzione delle campagne su Google Analytics: {str(e)}")
 
 # ------------------------------
 #             LEAD
@@ -403,9 +435,15 @@ def lead_analysis(results, results_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        lead_metrics(results, results_comp)
+        try:
+            lead_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche dei lead: {str(e)}")
     with col2:
-        lead_qualificati_chart(results, results_comp)
+        try:
+            lead_qualificati_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico dei lead qualificati: {str(e)}")
 
 # ------------------------------
 #           PERFORMANCE
@@ -475,15 +513,24 @@ def performance_bleed_out_lead(results, results_comp):
 def performance_analysis(results, results_comp):
     col1, col2, col3 = st.columns(3)
     with col1:
-        performance_lead_qualificati_chart(results, results_comp)
+        try:
+            performance_lead_qualificati_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico dei lead qualificati: {str(e)}")
     with col2:
-        performance_vendite_chart(results, results_comp)
+        try:
+            performance_vendite_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico delle vendite: {str(e)}")
     with col3:
         st.markdown("""
         <hr style="height:0px;border-width: 0px;;margin-top:35px;">
         """, unsafe_allow_html=True)
 
-        performance_bleed_out_lead(results, results_comp)
+        try:
+            performance_bleed_out_lead(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico dei lead persi: {str(e)}")
 
 # ------------------------------
 #         OPPORTUNITIES
@@ -568,9 +615,15 @@ def opp_analysis(results, results_comp):
 
     col1, col2 = st.columns(2)
     with col1:
-        opp_metrics(results, results_comp)
+        try:
+            opp_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche delle opportunità: {str(e)}")
     with col2:
-        opp_per_giorno_chart(results, results_comp)
+        try:
+            opp_per_giorno_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico delle opportunità per giorno: {str(e)}")
 
 # ------------------------------
 #           ECONOMICS
@@ -615,6 +668,9 @@ def economics_analysis(meta_results, meta_results_comp, gads_results, gads_resul
 
     col1, col2 = st.columns(2)
     with col1:
-        economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
+        try:
+            economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche economiche: {str(e)}")
     with col2:
         a = 0
