@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from config import STAGES, FIELDS
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppCreatedAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
 from data_retrieval import api_retrieve_data, opp_retrieving, lead_retrieving
 from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis, lead_analysis, performance_analysis, opp_analysis, economics_analysis
@@ -83,12 +83,20 @@ locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 st.title("Parametri della analisi")
 
-st.subheader("Selezionare il periodo desiderato")
 col_date1, col_date2 = st.columns(2)
 with col_date1:
     start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=14)), format="DD/MM/YYYY")
 with col_date2:
     end_date = st.date_input("Fine", (datetime.today() - timedelta(days=1)), format="DD/MM/YYYY")
+
+update_radio = st.radio(
+    "Tipologia di aggiornamento delle opportunità",
+    ["Creazione", "Lavorazione"],
+    captions=[
+        "Aggiorna i dati in base alla data di creazione dell'opportunità",
+        "Aggiorna i dati in base alla data di cambio stage dell'opportunità"
+    ],
+)
 
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
@@ -100,6 +108,13 @@ if st.button("Scarica i dati") & privacy:
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
+    if update_radio == "Creazione":
+        update_type = "createdAt"
+    else:
+        update_type = "lastStageChangeAt"
+    
+    # Database connection
+    # ------------------------------
     pool = mysql.connector.pooling.MySQLConnectionPool(
         pool_name="mypool",
         pool_size=5,
@@ -122,7 +137,7 @@ if st.button("Scarica i dati") & privacy:
         globals()[df_name] = api_retrieve_data(source, fields, comparison_start, end_date)
 
     try:
-        df_opp_raw = opp_retrieving(pool, start_date, end_date)
+        df_opp_raw = opp_retrieving(pool, update_type, comparison_start, end_date)
     except Exception as e:
         st.warning(f"Errore nel recupero dei dati da opportunità: {str(e)}")
         df_opp_raw = pd.DataFrame()
@@ -138,7 +153,7 @@ if st.button("Scarica i dati") & privacy:
     ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["ganalytics_account"])
     ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze(df_ganalytics_raw)
 
-    opp_analyzer = OppCreatedAnalyzer(start_date, end_date, comparison_start, comparison_end)
+    opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type)
     opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
 
     # Data visualization

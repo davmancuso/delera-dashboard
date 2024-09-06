@@ -25,7 +25,7 @@ def api_retrieve_data(source, fields, start_date, end_date):
         st.warning(f"Errore nel recupero dei dati da {source}: {str(e)}")
         return pd.DataFrame()
 
-def opp_retrieving(pool, start_date, end_date):
+def opp_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
@@ -41,12 +41,12 @@ def opp_retrieving(pool, start_date, end_date):
                 WHERE
                     o.locationId='{st.secrets.id_cliente}'
                     AND ops.pipelineId='{st.secrets.pipeline_vendita}'
-                    AND o.createdAt >= '{start_date}T00:00:00.000Z'
-                    AND o.createdAt <= '{end_date}T23:59:59.999Z'
+                    AND o.{update_type} >= '{start_date}T00:00:00.000Z'
+                    AND o.{update_type} <= '{end_date}T23:59:59.999Z'
                 ORDER BY
-                    o.createdAt;
+                    o.{update_type};
             """
-
+    
     cursor.execute(query)
 
     df_raw = cursor.fetchall()

@@ -211,20 +211,21 @@ class GanalyticsAnalyzer(BaseAnalyzer):
 
         return campaign_sessions
 
-class OppCreatedAnalyzer(BaseAnalyzer):
-    def __init__(self, start_date, end_date, comparison_start, comparison_end):
+class OppAnalyzer(BaseAnalyzer):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end, update_type):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
+        self.update_type = update_type
     
     def clean_data(self, df, is_comparison=False):
         start = self.comparison_start if is_comparison else self.start_date
         end = self.comparison_end if is_comparison else self.end_date
         
         df = df.loc[
-            (df["createdAt"] >= start) &
-            (df["createdAt"] <= end)
+            (df[self.update_type] >= start) &
+            (df[self.update_type] <= end)
         ]
 
-        df['createdAt'] = pd.to_datetime(df['createdAt'])
+        df[self.update_type] = pd.to_datetime(df[self.update_type])
 
         return df
     
@@ -278,7 +279,7 @@ class OppCreatedAnalyzer(BaseAnalyzer):
         date_range = pd.date_range(start=start, end=end)
         lead_qualificati_giorno = pd.DataFrame({'date': date_range})
 
-        lead_counts = df[df['stage'].isin(STAGES['qualificati'])].groupby(df['createdAt'].dt.date).size().reset_index(name='count')
+        lead_counts = df[df['stage'].isin(STAGES['qualificati'])].groupby(df[self.update_type].dt.date).size().reset_index(name='count')
         lead_counts.columns = ['date', 'count']
         lead_counts['date'] = pd.to_datetime(lead_counts['date'])
 
@@ -296,7 +297,7 @@ class OppCreatedAnalyzer(BaseAnalyzer):
         date_range = pd.date_range(start=start, end=end)
         vinti_giorno = pd.DataFrame({'date': date_range})
 
-        vinti_counts = df[df['stage'].isin(STAGES['vinti'])].groupby(df['createdAt'].dt.date).size().reset_index(name='count')
+        vinti_counts = df[df['stage'].isin(STAGES['vinti'])].groupby(df[self.update_type].dt.date).size().reset_index(name='count')
         vinti_counts.columns = ['date', 'count']
         vinti_counts['date'] = pd.to_datetime(vinti_counts['date'])
 
@@ -314,7 +315,7 @@ class OppCreatedAnalyzer(BaseAnalyzer):
         date_range = pd.date_range(start=start, end=end)
         opp_per_giorno = pd.DataFrame({'date': date_range})
 
-        opp_counts = df.groupby(df['createdAt'].dt.date).size().reset_index(name='count')
+        opp_counts = df.groupby(df[self.update_type].dt.date).size().reset_index(name='count')
         opp_counts.columns = ['date', 'count']
         opp_counts['date'] = pd.to_datetime(opp_counts['date'])
 
