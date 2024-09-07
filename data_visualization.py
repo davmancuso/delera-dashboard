@@ -367,17 +367,11 @@ def lead_metrics(results, results_comp):
         st.metric("Tasso di vendita", percentage(results["tasso_vendita"]) if results["tasso_vendita"] != 0 else "-", tassoVendita_delta)
 
 def lead_qualificati_chart(results, results_comp):
-    daily_qualificati_current = results['lead_qualificati_giorno']
-    daily_qualificati_comp = results_comp['lead_qualificati_giorno']
+    daily_qualificati_current = process_daily_data(results, 'Periodo Corrente', 'lead_qualificati_giorno')
+    daily_qualificati_comp = process_daily_data(results_comp, 'Periodo Precedente', 'lead_qualificati_giorno')
 
-    daily_qualificati_current['date'] = pd.to_datetime(daily_qualificati_current['date'])
-    daily_qualificati_comp['date'] = pd.to_datetime(daily_qualificati_comp['date'])
-
-    daily_qualificati_current['day'] = (daily_qualificati_current['date'] - daily_qualificati_current['date'].min()).apply(lambda x: x.days)
-    daily_qualificati_comp['day'] = (daily_qualificati_comp['date'] - daily_qualificati_comp['date'].min()).apply(lambda x: x.days)
-
-    daily_qualificati_current['period'] = 'Periodo Corrente'
-    daily_qualificati_comp['period'] = 'Periodo Precedente'
+    daily_qualificati_current['day'] = (daily_qualificati_current['date'] - daily_qualificati_current['date'].min()).dt.days
+    daily_qualificati_comp['day'] = (daily_qualificati_comp['date'] - daily_qualificati_comp['date'].min()).dt.days
 
     combined_qualificati = pd.concat([daily_qualificati_comp, daily_qualificati_current])
 
@@ -388,7 +382,7 @@ def lead_qualificati_chart(results, results_comp):
 
     hover_data = {
         'period': True,
-        'date': '|%d/%m/%Y',
+        'date': True,
         'count': ':.0f',
         'day': False
     }
@@ -547,19 +541,13 @@ def opp_metrics(results, results_comp):
         st.metric("Persi", thousand_0(results["persi"]), persi_delta)
 
 def opp_per_giorno_chart(results, results_comp):
-    opp_per_giorno = results['opp_per_giorno']
-    opp_per_giorno_comp = results_comp['opp_per_giorno']
+    daily_opp_current = process_daily_data(results, 'Periodo Corrente', 'opp_per_giorno')
+    daily_opp_comp = process_daily_data(results_comp, 'Periodo Precedente', 'opp_per_giorno')
 
-    opp_per_giorno['date'] = pd.to_datetime(opp_per_giorno['date'])
-    opp_per_giorno_comp['date'] = pd.to_datetime(opp_per_giorno_comp['date'])
+    daily_opp_current['day'] = (daily_opp_current['date'] - daily_opp_current['date'].min()).dt.days
+    daily_opp_comp['day'] = (daily_opp_comp['date'] - daily_opp_comp['date'].min()).dt.days
 
-    opp_per_giorno['day'] = (opp_per_giorno['date'] - opp_per_giorno['date'].min()).apply(lambda x: x.days)
-    opp_per_giorno_comp['day'] = (opp_per_giorno_comp['date'] - opp_per_giorno_comp['date'].min()).apply(lambda x: x.days)
-
-    opp_per_giorno['period'] = 'Periodo Corrente'
-    opp_per_giorno_comp['period'] = 'Periodo Precedente'
-
-    combined_opp = pd.concat([opp_per_giorno, opp_per_giorno_comp])
+    combined_opp = pd.concat([daily_opp_comp, daily_opp_current])
 
     color_map = {
         'Periodo Corrente': '#b12b94',
@@ -568,7 +556,7 @@ def opp_per_giorno_chart(results, results_comp):
     
     hover_data = {
         'period': True,
-        'date': '|%d/%m/%Y',
+        'date': True,
         'count': ':.0f',
         'day': False
     }

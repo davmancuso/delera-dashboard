@@ -1,5 +1,6 @@
 import locale
 import pandas as pd
+import streamlit as st
 
 def currency(value):
     integer_part, decimal_part = f"{value:,.2f}".split(".")
@@ -44,8 +45,18 @@ def process_daily_data(results, period_name, data_type):
         daily_data = daily_data.merge(results['utenti_attivi_giornalieri'], on='date', how='left')
         daily_data['active_users'] = daily_data['active_users'].fillna(0)
         column_name = 'active_users'
+    elif data_type == 'lead_qualificati_giorno':
+        results['lead_qualificati_giorno']['date'] = pd.to_datetime(results['lead_qualificati_giorno']['date'])
+        daily_data = daily_data.merge(results['lead_qualificati_giorno'], on='date', how='left')
+        daily_data['count'] = daily_data['count'].fillna(0)
+        column_name = 'count'
+    elif data_type == 'opp_per_giorno':
+        results['opp_per_giorno']['date'] = pd.to_datetime(results['opp_per_giorno']['date'])
+        daily_data = daily_data.merge(results['opp_per_giorno'], on='date', how='left')
+        daily_data['count'] = daily_data['count'].fillna(0)
+        column_name = 'count'
     else:
-        raise ValueError("Tipo di dati non valido")
+        raise ValueError("Tipo di dati non valido.")
     
     daily_data['period'] = period_name
     
