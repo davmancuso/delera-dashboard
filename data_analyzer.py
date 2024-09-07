@@ -27,8 +27,10 @@ class MetaAnalyzer(BaseAnalyzer):
             (~df["campaign"].str.contains(r"DENTALAI"))
         ]
     
-    def aggregate_results(self, df):
+    def aggregate_results(self, df, is_comparison=False):
         aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
             'spesa_totale': df["spend"].sum(),
             'impression': df["impressions"].sum(),
             'click': df["outbound_clicks_outbound_click"].sum(),
@@ -49,7 +51,7 @@ class MetaAnalyzer(BaseAnalyzer):
         df_comp = self.clean_data(df_raw, is_comparison=True)
 
         results = self.aggregate_results(df)
-        results_comp = self.aggregate_results(df_comp)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
 
         return results, results_comp
     
@@ -88,8 +90,10 @@ class GadsAnalyzer(BaseAnalyzer):
             (df["date"] <= end)
         ]
     
-    def aggregate_results(self, df):
+    def aggregate_results(self, df, is_comparison=False):
         aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
             'spesa_totale': df["spend"].sum(),
             'impression': df["impressions"].sum(),
             'click': df["clicks"].sum(),
@@ -110,7 +114,7 @@ class GadsAnalyzer(BaseAnalyzer):
         df_comp = self.clean_data(df_raw, is_comparison=True)
 
         results = self.aggregate_results(df)
-        results_comp = self.aggregate_results(df_comp)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
 
         return results, results_comp
     
@@ -149,8 +153,10 @@ class GanalyticsAnalyzer(BaseAnalyzer):
             (df["date"] <= end)
         ]
     
-    def aggregate_results(self, df):
+    def aggregate_results(self, df, is_comparison=False):
         aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
             'utenti_attivi': df["active_users"].sum(),
             'sessioni': df["sessions"].sum(),
             'sessioni_con_engage': df["engaged_sessions"].sum(),
@@ -173,7 +179,7 @@ class GanalyticsAnalyzer(BaseAnalyzer):
         df_comp = self.clean_data(df_raw, is_comparison=True)
 
         results = self.aggregate_results(df)
-        results_comp = self.aggregate_results(df_comp)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
 
         return results, results_comp
     
@@ -230,9 +236,9 @@ class OppAnalyzer(BaseAnalyzer):
         return df
     
     def aggregate_results(self, df, is_comparison=False):
-        num_days = (self.end_date - self.start_date).days
-
         aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
             'totali': len(df),
             'lead_da_qualificare': df[df['stage'].isin(STAGES['daQualificare'])].shape[0],
             'lead_qualificati': df[df['stage'].isin(STAGES['qualificati'])].shape[0],
@@ -247,6 +253,8 @@ class OppAnalyzer(BaseAnalyzer):
             'opp_per_giorno': self.opp_per_giorno(df, is_comparison),
             'incasso': df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
         }
+
+        num_days = (aggregate_results['end_date'] - aggregate_results['start_date']).days
 
         for r in [aggregate_results]:
             r['lead_qualificati_giorno_metrics'] = r['lead_qualificati'] / num_days if num_days != 0 else 0

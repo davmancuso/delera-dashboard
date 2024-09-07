@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
+from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta, process_daily_data
 
 # ------------------------------
 #             META
@@ -33,16 +33,11 @@ def meta_metrics(results, results_comp):
         st.metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, delta_color="inverse")
 
 def meta_spend_chart(results, results_comp):
-    daily_spend_current = results['spesa_giornaliera']
-    daily_spend_comp = results_comp['spesa_giornaliera']
+    daily_spend_current = process_daily_data(results, 'Periodo Corrente', 'spesa_giornaliera')
+    daily_spend_comp = process_daily_data(results_comp, 'Periodo Precedente', 'spesa_giornaliera')
 
-    num_days = (results['spesa_giornaliera']['date'].max() - results['spesa_giornaliera']['date'].min()).days + 1
-
-    daily_spend_current['day'] = range(num_days)
-    daily_spend_comp['day'] = range(num_days)
-
-    daily_spend_current['period'] = 'Periodo Corrente'
-    daily_spend_comp['period'] = 'Periodo Precedente'
+    daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).dt.days
+    daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).dt.days
 
     combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
 
@@ -53,7 +48,7 @@ def meta_spend_chart(results, results_comp):
 
     hover_data = {
         'period': True,
-        'date': '|%d/%m/%Y',
+        'date': True,
         'spend': ':.2f',
         'day': False
     }
@@ -68,7 +63,7 @@ def meta_spend_chart(results, results_comp):
     fig_spend.update_traces(mode='lines+markers')
     fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
     fig_spend.update_xaxes(title='Giorno del periodo')
-    fig_spend.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]}<br>Spesa (€): %{y:.2f}<extra></extra>')
+    fig_spend.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>')
     fig_spend.update_layout(
         legend=dict(
             orientation="h",
@@ -102,7 +97,7 @@ def meta_analysis(results, results_comp):
             st.plotly_chart(fig_spend)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Meta: {str(e)}")
-    
+
     st.title("Dettaglio delle campagne")
 
     try:
@@ -140,16 +135,11 @@ def gads_metrics(results, results_comp):
         st.metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, delta_color="inverse")
 
 def gads_spend_chart(results, results_comp):
-    daily_spend_current = results['spesa_giornaliera']
-    daily_spend_comp = results_comp['spesa_giornaliera']
-    
-    num_days = (results['spesa_giornaliera']['date'].max() - results['spesa_giornaliera']['date'].min()).days + 1
-    
-    daily_spend_current['day'] = range(num_days)
-    daily_spend_comp['day'] = range(num_days)
+    daily_spend_current = process_daily_data(results, 'Periodo Corrente', 'spesa_giornaliera')
+    daily_spend_comp = process_daily_data(results_comp, 'Periodo Precedente', 'spesa_giornaliera')
 
-    daily_spend_current['period'] = 'Periodo Corrente'
-    daily_spend_comp['period'] = 'Periodo Precedente'
+    daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).dt.days
+    daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).dt.days
 
     combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
 
@@ -160,7 +150,7 @@ def gads_spend_chart(results, results_comp):
 
     hover_data = {
         'period': True,
-        'date': '|%d/%m/%Y',
+        'date': True,
         'spend': ':.2f',
         'day': False
     }
@@ -175,7 +165,7 @@ def gads_spend_chart(results, results_comp):
     fig_spend.update_traces(mode='lines+markers')
     fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
     fig_spend.update_xaxes(title='Giorno del periodo')
-    fig_spend.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]}<br>Spesa (€): %{y:.2f}<extra></extra>')
+    fig_spend.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>')
     fig_spend.update_layout(
         legend=dict(
             orientation="h",
@@ -247,14 +237,11 @@ def ganalytics_metrics(results, results_comp):
         st.metric("Tempo per utente (sec)", thousand_2(results["durata_utente"]) if results["durata_utente"] != 0 else "-", tempo_user_delta)
 
 def ganalytics_users_chart(results, results_comp):
-    daily_users_current = results['utenti_attivi_giornalieri']
-    daily_users_comp = results_comp['utenti_attivi_giornalieri']
+    daily_users_current = process_daily_data(results, 'Periodo Corrente', 'utenti_attivi_giornalieri')
+    daily_users_comp = process_daily_data(results_comp, 'Periodo Precedente', 'utenti_attivi_giornalieri')
 
-    daily_users_current['day'] = (daily_users_current['date'] - daily_users_current['date'].min()).apply(lambda x: x.days)
-    daily_users_comp['day'] = (daily_users_comp['date'] - daily_users_comp['date'].min()).apply(lambda x: x.days)
-
-    daily_users_current['period'] = 'Periodo Corrente'
-    daily_users_comp['period'] = 'Periodo Precedente'
+    daily_users_current['day'] = (daily_users_current['date'] - daily_users_current['date'].min()).dt.days
+    daily_users_comp['day'] = (daily_users_comp['date'] - daily_users_comp['date'].min()).dt.days
 
     combined_users = pd.concat([daily_users_comp, daily_users_current])
 
@@ -265,23 +252,22 @@ def ganalytics_users_chart(results, results_comp):
 
     hover_data = {
         'period': True,
-        'date': '|%d/%m/%Y',
+        'date': True,
         'active_users': ':.0f',
         'day': False
     }
 
     fig_users = px.line(combined_users, x='day', y='active_users', color='period',
-                title='Utenti attivi',
+                title='Utenti attivi giornalieri',
                 markers=True,
-                labels={'day': 'Giorno relativo al periodo', 'active_users': 'Utenti attivi', 'period': 'Periodo', 'date': 'Data'},
+                labels={'day': 'Giorno relativo al periodo', 'active_users': 'Utenti attivi', 'period': 'Periodo'},
                 color_discrete_map=color_map,
                 hover_data=hover_data)
 
     fig_users.update_traces(mode='lines+markers')
     fig_users.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
-    fig_users.update_traces(
-        hovertemplate='<b>Periodo: %{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Utenti attivi: %{y:.0f}<extra></extra>'
-    )
+    fig_users.update_xaxes(title='Giorno del periodo')
+    fig_users.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Utenti attivi: %{y:.0f}<extra></extra>')
     fig_users.update_layout(
         legend=dict(
             orientation="h",
@@ -291,8 +277,8 @@ def ganalytics_users_chart(results, results_comp):
             x=0.5
         )
     )
-    
-    st.plotly_chart(fig_users)
+
+    return fig_users
     
 def ganalytics_session_distribution(results):
     session_df = results['sessioni_distribuzione']
@@ -334,6 +320,7 @@ def ganalytics_analysis(results, results_comp):
     with col2:
         try:
             fig_users = ganalytics_users_chart(results, results_comp)
+            st.plotly_chart(fig_users)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico degli utenti attivi su Google Analytics: {str(e)}")
 

@@ -1,4 +1,5 @@
 import locale
+import pandas as pd
 
 def currency(value):
     integer_part, decimal_part = f"{value:,.2f}".split(".")
@@ -28,3 +29,24 @@ def get_metric_delta(current, previous):
     if previous == 0:
         return "-"
     return percentage((current - previous) / previous * 100)
+
+def process_daily_data(results, period_name, data_type):
+    date_range = pd.date_range(start=results['start_date'], end=results['end_date'])
+    daily_data = pd.DataFrame({'date': date_range})
+    
+    if data_type == 'spesa_giornaliera':
+        results['spesa_giornaliera']['date'] = pd.to_datetime(results['spesa_giornaliera']['date'])
+        daily_data = daily_data.merge(results['spesa_giornaliera'], on='date', how='left')
+        daily_data['spend'] = daily_data['spend'].fillna(0)
+        column_name = 'spend'
+    elif data_type == 'utenti_attivi_giornalieri':
+        results['utenti_attivi_giornalieri']['date'] = pd.to_datetime(results['utenti_attivi_giornalieri']['date'])
+        daily_data = daily_data.merge(results['utenti_attivi_giornalieri'], on='date', how='left')
+        daily_data['active_users'] = daily_data['active_users'].fillna(0)
+        column_name = 'active_users'
+    else:
+        raise ValueError("Tipo di dati non valido")
+    
+    daily_data['period'] = period_name
+    
+    return daily_data[[('date'), (column_name), ('period')]]
