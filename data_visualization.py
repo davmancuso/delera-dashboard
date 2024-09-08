@@ -74,7 +74,7 @@ def meta_spend_chart(results, results_comp):
         )
     )
 
-    return fig_spend
+    st.plotly_chart(fig_spend)
 
 def meta_campaign_details(dettaglioCampagne):
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
@@ -93,8 +93,7 @@ def meta_analysis(results, results_comp):
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Meta: {str(e)}")
     with col2:
         try:
-            fig_spend = meta_spend_chart(results, results_comp)
-            st.plotly_chart(fig_spend)
+            meta_spend_chart(results, results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Meta: {str(e)}")
 
@@ -176,7 +175,7 @@ def gads_spend_chart(results, results_comp):
         )
     )
 
-    return fig_spend
+    st.plotly_chart(fig_spend)
 
 def gads_campaign_details(dettaglioCampagne):
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
@@ -195,8 +194,7 @@ def gads_analysis(results, results_comp):
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Google Ads: {str(e)}")
     with col2:
         try:
-            fig_spend = gads_spend_chart(results, results_comp)
-            st.plotly_chart(fig_spend)
+            gads_spend_chart(results, results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Google Ads: {str(e)}")
     
@@ -278,7 +276,7 @@ def ganalytics_users_chart(results, results_comp):
         )
     )
 
-    return fig_users
+    st.plotly_chart(fig_users)
     
 def ganalytics_session_distribution(results):
     session_df = results['sessioni_distribuzione']
@@ -319,8 +317,7 @@ def ganalytics_analysis(results, results_comp):
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche Google Analytics: {str(e)}")
     with col2:
         try:
-            fig_users = ganalytics_users_chart(results, results_comp)
-            st.plotly_chart(fig_users)
+            ganalytics_users_chart(results, results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico degli utenti attivi su Google Analytics: {str(e)}")
 
@@ -638,6 +635,50 @@ def economics_metrics(meta_results, meta_results_comp, gads_results, gads_result
         roi_delta = get_metric_delta(roi, roi_comp)
         st.metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
 
+def economics_fatturato_giornaliero_chart(results, results_comp):
+    daily_fatturato_current = process_daily_data(results, 'Periodo Corrente', 'incasso_giorno')
+    daily_fatturato_comp = process_daily_data(results_comp, 'Periodo Precedente', 'incasso_giorno')
+
+    daily_fatturato_current['day'] = (daily_fatturato_current['date'] - daily_fatturato_current['date'].min()).dt.days
+    daily_fatturato_comp['day'] = (daily_fatturato_comp['date'] - daily_fatturato_comp['date'].min()).dt.days
+
+    combined_fatturato = pd.concat([daily_fatturato_comp, daily_fatturato_current])
+
+    color_map = {
+        'Periodo Corrente': '#b12b94',
+        'Periodo Precedente': '#eb94d8'
+    }
+
+    hover_data = {
+        'period': True,
+        'date': True,
+        'count': ':.2f',
+        'day': False
+    }
+
+    fig_fatturato = px.line(combined_fatturato, x='day', y='count', color='period',
+                title='Fatturato giornaliero',
+                markers=True,
+                labels={'day': 'Giorno relativo al periodo', 'count': 'Fatturato (€)', 'period': 'Periodo'},
+                color_discrete_map=color_map,
+                hover_data=hover_data)
+
+    fig_fatturato.update_traces(mode='lines+markers')
+    fig_fatturato.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+    fig_fatturato.update_xaxes(title='Giorno del periodo')
+    fig_fatturato.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Fatturato (€): %{y:.2f}<extra></extra>')
+    fig_fatturato.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.4,
+            xanchor="center",
+            x=0.5
+        )
+    )
+
+    st.plotly_chart(fig_fatturato)
+
 def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
     st.title("Performance economiche")
 
@@ -648,4 +689,7 @@ def economics_analysis(meta_results, meta_results_comp, gads_results, gads_resul
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche economiche: {str(e)}")
     with col2:
-        a = 0
+        try:
+            economics_fatturato_giornaliero_chart(opp_results, opp_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico del fatturato giornaliero: {str(e)}")

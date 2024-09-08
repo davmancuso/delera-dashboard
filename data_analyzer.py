@@ -1,5 +1,5 @@
 import pandas as pd
-
+import streamlit as st
 from config import STAGES
 
 class BaseAnalyzer:
@@ -251,7 +251,8 @@ class OppAnalyzer(BaseAnalyzer):
             'lead_qualificati_giorno': self.lead_qualificati_giorno(df, is_comparison),
             'vinti_giorno': self.vinti_giorno(df, is_comparison),
             'opp_per_giorno': self.opp_per_giorno(df, is_comparison),
-            'incasso': df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum()
+            'incasso': df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum(),
+            'incasso_giorno': self.incasso_giorno(df, is_comparison)
         }
 
         num_days = (aggregate_results['end_date'] - aggregate_results['start_date']).days
@@ -333,3 +334,21 @@ class OppAnalyzer(BaseAnalyzer):
         opp_per_giorno['count'] = opp_per_giorno['count'].fillna(0)
 
         return opp_per_giorno
+
+    def incasso_giorno(self, df, is_comparison=False):
+        start = self.comparison_start if is_comparison else self.start_date
+        end = self.comparison_end if is_comparison else self.end_date
+
+        date_range = pd.date_range(start=start, end=end)
+        incasso_giorno = pd.DataFrame({'date': date_range})
+
+        incasso_counts = df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].groupby(df[self.update_type].dt.date).sum().reset_index(name='count')
+        incasso_counts.columns = ['date', 'count']
+        incasso_counts['date'] = pd.to_datetime(incasso_counts['date'])
+
+        incasso_giorno['date'] = pd.to_datetime(incasso_giorno['date'])
+
+        incasso_giorno = incasso_giorno.merge(incasso_counts, on='date', how='left')
+        incasso_giorno['count'] = incasso_giorno['count'].fillna(0)
+
+        return incasso_giorno

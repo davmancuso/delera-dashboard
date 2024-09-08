@@ -55,6 +55,11 @@ def process_daily_data(results, period_name, data_type):
         daily_data = daily_data.merge(results['opp_per_giorno'], on='date', how='left')
         daily_data['count'] = daily_data['count'].fillna(0)
         column_name = 'count'
+    elif data_type == 'incasso_giorno':
+        results['incasso_giorno']['date'] = pd.to_datetime(results['incasso_giorno']['date'])
+        daily_data = daily_data.merge(results['incasso_giorno'], on='date', how='left')
+        daily_data['count'] = daily_data['count'].fillna(0)
+        column_name = 'count'
     else:
         raise ValueError("Tipo di dati non valido.")
     
