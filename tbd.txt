@@ -1,17 +1,6 @@
 1. Implementazione del layout responsive
 
-2. Ottimizzazione delle query del database
-
-# Utilizzare indici appropriati nel database
-# Limitare i dati recuperati solo a quelli necessari
-query = """
-    SELECT createdAt, lastStageChangeAt, monetaryValue, stage
-    FROM opportunities
-    WHERE locationId = %s AND createdAt BETWEEN %s AND %s
-"""
-cursor.execute(query, (st.secrets.id_cliente, start_date, end_date))
-
-3. Caching dei risultati
+2. Caching dei risultati
 
 @st.cache_data
 def fetch_and_process_data(start_date, end_date):
@@ -21,7 +10,7 @@ def fetch_and_process_data(start_date, end_date):
 # Uso:
 data = fetch_and_process_data(start_date, end_date)
 
-6. Utilizzo di list comprehension e funzioni di aggregazione
+3. Utilizzo di list comprehension e funzioni di aggregazione
 
 # Invece di cicli for
 filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
