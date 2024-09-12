@@ -2,11 +2,7 @@ import streamlit as st
 import locale
 import mysql.connector
 from datetime import datetime, timedelta
-from urllib.request import urlopen
-import json
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 
 from config import STAGES, FIELDS
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer
