@@ -138,17 +138,33 @@ if st.button("Scarica i dati") & privacy:
 
     # Data processing
     # ------------------------------
-    meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])
-    meta_results, meta_results_comp = meta_analyzer.analyze(df_meta_raw)
+    try:
+        meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["meta_account"])
+        meta_results, meta_results_comp = meta_analyzer.analyze(df_meta_raw)
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati di Meta: {str(e)}")
+        meta_results, meta_results_comp = {}, {}
 
-    gads_analyzer = GadsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["gads_account"])
-    gads_results, gads_results_comp = gads_analyzer.analyze(df_gads_raw)
-    
-    ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["ganalytics_account"])
-    ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze(df_ganalytics_raw)
+    try:
+        gads_analyzer = GadsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["gads_account"])
+        gads_results, gads_results_comp = gads_analyzer.analyze(df_gads_raw)
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati di Google Ads: {str(e)}")
+        gads_results, gads_results_comp = {}, {}
 
-    opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type)
-    opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
+    try:
+        ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end, st.secrets["ganalytics_account"])
+        ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze(df_ganalytics_raw)
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati di Google Analytics: {str(e)}")
+        ganalytics_results, ganalytics_results_comp = {}, {}
+
+    try:
+        opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type)
+        opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati da opportunità: {str(e)}")
+        opp_results, opp_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------
