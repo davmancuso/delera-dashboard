@@ -31,6 +31,12 @@ def get_metric_delta(current, previous):
         return "-"
     return percentage((current - previous) / previous * 100)
 
+def display_metric(label, value, delta, is_delta_inverse=False):
+    try:
+        st.metric(label, value, delta, delta_color=("inverse" if is_delta_inverse else "normal"))
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione delle metriche: {str(e)}")
+
 def process_daily_data(results, period_name, data_type):
     date_range = pd.date_range(start=results['start_date'], end=results['end_date'])
     daily_data = pd.DataFrame({'date': date_range})

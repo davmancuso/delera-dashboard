@@ -70,13 +70,6 @@ st.sidebar.subheader("Dati agenzia")
 st.sidebar.text("Agenzia: Brain on strategy srl\nWebsite: brainonstrategy.com\nMail: info@brainonstrategy.com\nTelefono: +39 392 035 9839")
 
 # ------------------------------
-#          FUNCTIONS
-# ------------------------------
-def clear_all_cache():
-    st.cache_data.clear()
-    st.cache_resource.clear()
-
-# ------------------------------
 #             BODY
 # ------------------------------
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
@@ -101,7 +94,8 @@ update_radio = st.radio(
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
 if st.button("Scarica i dati") & privacy:
-    clear_all_cache()
+    st.cache_data.clear()
+    st.cache_resource.clear()
 
     period = end_date - start_date + timedelta(days=1)
 

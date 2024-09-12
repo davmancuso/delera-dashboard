@@ -3,34 +3,34 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta, process_daily_data
+from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta, display_metric, process_daily_data
 
 # ------------------------------
 #             META
 # ------------------------------
 def meta_metrics(results, results_comp):
     spesa_totale_delta = get_metric_delta(results["spesa_totale"], results_comp["spesa_totale"])
-    st.metric("Spesa totale", currency(results["spesa_totale"]), spesa_totale_delta)
+    display_metric("Spesa totale", currency(results["spesa_totale"]), spesa_totale_delta)
 
     col1, col2, col3 = st.columns(3)
     with col1:
         campagne_attive_delta = get_metric_delta(results["campagne_attive"], results_comp["campagne_attive"])
-        st.metric("Campagne attive", results["campagne_attive"], campagne_attive_delta)
+        display_metric("Campagne attive", results["campagne_attive"], campagne_attive_delta)
 
         cpm_delta = get_metric_delta(results["cpm"], results_comp["cpm"])
-        st.metric("CPM", currency(results["cpm"]) if results["cpm"] != 0 else "-", cpm_delta, delta_color="inverse")
+        display_metric("CPM", currency(results["cpm"]) if results["cpm"] != 0 else "-", cpm_delta, is_delta_inverse=True)
     with col2:
         impression_delta = get_metric_delta(results["impression"], results_comp["impression"])
-        st.metric("Impression", thousand_0(results["impression"]), impression_delta)
+        display_metric("Impression", thousand_0(results["impression"]), impression_delta)
 
         ctr_delta = get_metric_delta(results["ctr"], results_comp["ctr"])
-        st.metric("CTR", percentage(results["ctr"]) if results["ctr"] != 0 else "-", ctr_delta)
+        display_metric("CTR", percentage(results["ctr"]) if results["ctr"] != 0 else "-", ctr_delta)
     with col3:
         click_delta = get_metric_delta(results["click"], results_comp["click"])
-        st.metric("Click", thousand_0(results["click"]), click_delta)
+        display_metric("Click", thousand_0(results["click"]), click_delta)
 
         cpc_delta = get_metric_delta(results["cpc"], results_comp["cpc"])
-        st.metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, delta_color="inverse")
+        display_metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, is_delta_inverse=True)
 
 def meta_spend_chart(results, results_comp):
     daily_spend_current = process_daily_data(results, 'Periodo Corrente', 'spesa_giornaliera')
@@ -109,29 +109,29 @@ def meta_analysis(results, results_comp):
 # ------------------------------
 def gads_metrics(results, results_comp):
     spesaTot_delta = get_metric_delta(results["spesa_totale"], results_comp["spesa_totale"])
-    st.metric("Spesa totale", currency(results["spesa_totale"]), spesaTot_delta)
+    display_metric("Spesa totale", currency(results["spesa_totale"]), spesaTot_delta)
 
     col1, col2, col3 = st.columns(3)
     with col1:
         campagne_delta = get_metric_delta(results["campagne_attive"], results_comp["campagne_attive"])
-        st.metric("Campagne attive", results["campagne_attive"], campagne_delta)
+        display_metric("Campagne attive", results["campagne_attive"], campagne_delta)
 
         cpm_delta = get_metric_delta(results["cpm"], results_comp["cpm"])
-        st.metric("CPM", currency(results["cpm"]) if results["cpm"] != 0 else "-", cpm_delta, delta_color="inverse")
+        display_metric("CPM", currency(results["cpm"]) if results["cpm"] != 0 else "-", cpm_delta, is_delta_inverse=True)
 
     with col2:
         impression_delta = get_metric_delta(results["impression"], results_comp["impression"])
-        st.metric("Impression", thousand_0(results["impression"]), impression_delta)
+        display_metric("Impression", thousand_0(results["impression"]), impression_delta)
 
         ctr_delta = get_metric_delta(results["ctr"], results_comp["ctr"])
-        st.metric("CTR", percentage(results["ctr"]) if results["ctr"] != 0 else "-", ctr_delta)
+        display_metric("CTR", percentage(results["ctr"]) if results["ctr"] != 0 else "-", ctr_delta)
 
     with col3:
         click_delta = get_metric_delta(results["click"], results_comp["click"])
-        st.metric("Click", thousand_0(results["click"]), click_delta)
+        display_metric("Click", thousand_0(results["click"]), click_delta)
 
         cpc_delta = get_metric_delta(results["cpc"], results_comp["cpc"])
-        st.metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, delta_color="inverse")
+        display_metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, is_delta_inverse=True)
 
 def gads_spend_chart(results, results_comp):
     daily_spend_current = process_daily_data(results, 'Periodo Corrente', 'spesa_giornaliera')
@@ -210,29 +210,29 @@ def gads_analysis(results, results_comp):
 # ------------------------------
 def ganalytics_metrics(results, results_comp):
     active_user_delta = get_metric_delta(results["utenti_attivi"], results_comp["utenti_attivi"])
-    st.metric("Utenti attivi", thousand_0(results["utenti_attivi"]), active_user_delta)
+    display_metric("Utenti attivi", thousand_0(results["utenti_attivi"]), active_user_delta)
 
     col1_1, col1_2, col1_3 = st.columns(3)
     with col1_1:
         sessioni_delta = get_metric_delta(results["sessioni"], results_comp["sessioni"])
-        st.metric("Sessioni", thousand_0(results["sessioni"]), sessioni_delta)
+        display_metric("Sessioni", thousand_0(results["sessioni"]), sessioni_delta)
 
         sessions_users_delta = get_metric_delta(results["sessioni_per_utente"], results_comp["sessioni_per_utente"])
-        st.metric("Sessioni per utente attivo", thousand_2(results["sessioni_per_utente"]) if results["sessioni_per_utente"] != 0 else "-", sessions_users_delta)
+        display_metric("Sessioni per utente attivo", thousand_2(results["sessioni_per_utente"]) if results["sessioni_per_utente"] != 0 else "-", sessions_users_delta)
 
     with col1_2:
         sessioni_engaged_delta = get_metric_delta(results["sessioni_con_engage"], results_comp["sessioni_con_engage"])
-        st.metric("Sessioni con engage", thousand_0(results["sessioni_con_engage"]), sessioni_engaged_delta)
+        display_metric("Sessioni con engage", thousand_0(results["sessioni_con_engage"]), sessioni_engaged_delta)
 
         durata_sessione_delta = get_metric_delta(results["durata_sessioni"], results_comp["durata_sessioni"])
-        st.metric("Durata media sessione (sec)", thousand_2(results["durata_sessioni"]) if results["durata_sessioni"] != 0 else "-", durata_sessione_delta)
+        display_metric("Durata media sessione (sec)", thousand_2(results["durata_sessioni"]) if results["durata_sessioni"] != 0 else "-", durata_sessione_delta)
 
     with col1_3:
         engage_rate_delta = get_metric_delta(results["tasso_engage"], results_comp["tasso_engage"])
-        st.metric("Tasso di engage", percentage(results["tasso_engage"]) if results["tasso_engage"] != 0 else "-", engage_rate_delta)
+        display_metric("Tasso di engage", percentage(results["tasso_engage"]) if results["tasso_engage"] != 0 else "-", engage_rate_delta)
 
         tempo_user_delta = get_metric_delta(results["durata_utente"], results_comp["durata_utente"])
-        st.metric("Tempo per utente (sec)", thousand_2(results["durata_utente"]) if results["durata_utente"] != 0 else "-", tempo_user_delta)
+        display_metric("Tempo per utente (sec)", thousand_2(results["durata_utente"]) if results["durata_utente"] != 0 else "-", tempo_user_delta)
 
 def ganalytics_users_chart(results, results_comp):
     daily_users_current = process_daily_data(results, 'Periodo Corrente', 'utenti_attivi_giornalieri')
@@ -341,27 +341,27 @@ def ganalytics_analysis(results, results_comp):
 # ------------------------------
 def lead_metrics(results, results_comp):
     leadDaQualificare_delta = get_metric_delta(results["lead_da_qualificare"], results_comp["lead_da_qualificare"])
-    st.metric("Lead da qualificare", results["lead_da_qualificare"], leadDaQualificare_delta)
+    display_metric("Lead da qualificare", results["lead_da_qualificare"], leadDaQualificare_delta)
     
     col1, col2, col3 = st.columns(3)
     with col1:
         leadQualificati_delta = get_metric_delta(results["lead_qualificati"], results_comp["lead_qualificati"])
-        st.metric("Lead qualificati", results["lead_qualificati"], leadQualificati_delta)
+        display_metric("Lead qualificati", results["lead_qualificati"], leadQualificati_delta)
 
         leadVinti_delta = get_metric_delta(results["vendite"], results_comp["vendite"])
-        st.metric("Vendite", results["vendite"], leadVinti_delta)
+        display_metric("Vendite", results["vendite"], leadVinti_delta)
     with col2:
         leadQualificatiGiorno_delta = get_metric_delta(results["lead_qualificati_giorno_metrics"], results_comp["lead_qualificati_giorno_metrics"])
-        st.metric("Lead qualificati al giorno", thousand_2(results["lead_qualificati_giorno_metrics"]), leadQualificatiGiorno_delta)
+        display_metric("Lead qualificati al giorno", thousand_2(results["lead_qualificati_giorno_metrics"]), leadQualificatiGiorno_delta)
 
         vintiPerGiorno_delta = get_metric_delta(results["vinti_giorno_metrics"], results_comp["vinti_giorno_metrics"])
-        st.metric("Vendite al giorno", thousand_2(results["vinti_giorno_metrics"]), vintiPerGiorno_delta)
+        display_metric("Vendite al giorno", thousand_2(results["vinti_giorno_metrics"]), vintiPerGiorno_delta)
     with col3:
         tassoQualifica_delta = get_metric_delta(results["tasso_qualifica"], results_comp["tasso_qualifica"])
-        st.metric("Tasso di qualifica", percentage(results["tasso_qualifica"]) if results["tasso_qualifica"] != 0 else "-", tassoQualifica_delta)
+        display_metric("Tasso di qualifica", percentage(results["tasso_qualifica"]) if results["tasso_qualifica"] != 0 else "-", tassoQualifica_delta)
 
         tassoVendita_delta = get_metric_delta(results["tasso_vendita"], results_comp["tasso_vendita"])
-        st.metric("Tasso di vendita", percentage(results["tasso_vendita"]) if results["tasso_vendita"] != 0 else "-", tassoVendita_delta)
+        display_metric("Tasso di vendita", percentage(results["tasso_vendita"]) if results["tasso_vendita"] != 0 else "-", tassoVendita_delta)
 
 def lead_qualificati_chart(results, results_comp):
     daily_qualificati_current = process_daily_data(results, 'Periodo Corrente', 'lead_qualificati_giorno')
@@ -515,27 +515,27 @@ def performance_analysis(results, results_comp):
 # ------------------------------
 def opp_metrics(results, results_comp):
     opp_delta = get_metric_delta(results["totali"], results_comp["totali"])
-    st.metric("Opportunità", results["totali"], opp_delta)
+    display_metric("Opportunità", results["totali"], opp_delta)
     
     col1, col2, col3 = st.columns(3)
     with col1:
         setting_delta = get_metric_delta(results["lead_da_qualificare"], results_comp["lead_da_qualificare"])
-        st.metric("Setting - Da gestire", thousand_0(results["lead_da_qualificare"]), setting_delta)
+        display_metric("Setting - Da gestire", thousand_0(results["lead_da_qualificare"]), setting_delta)
 
         settingPersi_delta = get_metric_delta(results["setting_persi"], results_comp["setting_persi"])
-        st.metric("Setting - Persi", thousand_0(results["setting_persi"]), settingPersi_delta)
+        display_metric("Setting - Persi", thousand_0(results["setting_persi"]), settingPersi_delta)
     with col2:
         vendite_delta = get_metric_delta(results["vendite_gestione"], results_comp["vendite_gestione"])
-        st.metric("Vendita - Da gestire", thousand_0(results["vendite_gestione"]), vendite_delta)
+        display_metric("Vendita - Da gestire", thousand_0(results["vendite_gestione"]), vendite_delta)
 
         chiusura_delta = get_metric_delta(results["vendite_da_chiudere"], results_comp["vendite_da_chiudere"])
-        st.metric("Vendita - Da chiudere", thousand_0(results["vendite_da_chiudere"]), chiusura_delta)
+        display_metric("Vendita - Da chiudere", thousand_0(results["vendite_da_chiudere"]), chiusura_delta)
     with col3:
         vinti_delta = get_metric_delta(results["vendite"], results_comp["vendite"])
-        st.metric("Vinti", thousand_0(results["vendite"]), vinti_delta)
+        display_metric("Vinti", thousand_0(results["vendite"]), vinti_delta)
 
         persi_delta = get_metric_delta(results["persi"], results_comp["persi"])
-        st.metric("Persi", thousand_0(results["persi"]), persi_delta)
+        display_metric("Persi", thousand_0(results["persi"]), persi_delta)
 
 def opp_per_giorno_chart(results, results_comp):
     daily_opp_current = process_daily_data(results, 'Periodo Corrente', 'opp_per_giorno')
@@ -604,36 +604,36 @@ def economics_metrics(meta_results, meta_results_comp, gads_results, gads_result
     spesa_tot = meta_results['spesa_totale'] + gads_results['spesa_totale']
     spesa_tot_comp = meta_results_comp['spesa_totale'] + gads_results_comp['spesa_totale']
     spesa_tot_delta = get_metric_delta(spesa_tot, spesa_tot_comp)
-    st.metric("Spesa pubblicitaria", currency(spesa_tot), spesa_tot_delta)
+    display_metric("Spesa pubblicitaria", currency(spesa_tot), spesa_tot_delta)
     
     col1_1, col1_2, col1_3 = st.columns(3)
     with col1_1:
         costo_per_lead = spesa_tot / opp_results['totali'] if opp_results['totali'] > 0 else 0
         costo_per_lead_comp = spesa_tot_comp / opp_results_comp['totali'] if opp_results_comp['totali'] > 0 else 0
         costo_per_lead_delta = get_metric_delta(costo_per_lead, costo_per_lead_comp)
-        st.metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
+        display_metric("Costo per lead", currency(costo_per_lead) if costo_per_lead != 0 else "-", costo_per_lead_delta)
     with col1_2:
         costo_per_lead_qual = spesa_tot / opp_results['lead_qualificati'] if opp_results['lead_qualificati'] > 0 else 0
         costo_per_lead_qual_comp = spesa_tot_comp / opp_results_comp['lead_qualificati'] if opp_results_comp['lead_qualificati'] > 0 else 0
         costo_per_lead_qual_delta = get_metric_delta(costo_per_lead_qual, costo_per_lead_qual_comp)
-        st.metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
+        display_metric("Costo per lead qualificato", currency(costo_per_lead_qual) if costo_per_lead_qual != 0 else "-", costo_per_lead_qual_delta)
     with col1_3:
         costo_per_vendita = spesa_tot / opp_results['vendite'] if opp_results['vendite'] > 0 else 0
         costo_per_vendita_comp = spesa_tot_comp / opp_results_comp['vendite'] if opp_results_comp['vendite'] > 0 else 0
         costo_per_vendita_delta = get_metric_delta(costo_per_vendita, costo_per_vendita_comp)
-        st.metric("Costo per vendita", currency(costo_per_vendita) if costo_per_vendita != 0 else "-", costo_per_vendita_delta)
+        display_metric("Costo per vendita", currency(costo_per_vendita) if costo_per_vendita != 0 else "-", costo_per_vendita_delta)
     
     col1_4, col1_5 = st.columns(2)
     with col1_4:
         incasso = opp_results['incasso']
         incasso_comp = opp_results_comp['incasso']
         incasso_delta = get_metric_delta(incasso, incasso_comp)
-        st.metric("Fatturato", currency(incasso), incasso_delta)
+        display_metric("Fatturato", currency(incasso), incasso_delta)
     with col1_5:
         roi = (incasso - spesa_tot) / spesa_tot * 100 if spesa_tot > 0 else 0
         roi_comp = (incasso_comp - spesa_tot_comp) / spesa_tot_comp * 100 if spesa_tot_comp > 0 else 0
         roi_delta = get_metric_delta(roi, roi_comp)
-        st.metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
+        display_metric("ROI", percentage(roi) if roi != 0 else "-", roi_delta)
 
 def economics_fatturato_giornaliero_chart(results, results_comp):
     daily_fatturato_current = process_daily_data(results, 'Periodo Corrente', 'incasso_giorno')

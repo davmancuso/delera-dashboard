@@ -1,10 +1,4 @@
-1. Gestione degli errori
-
-try:
-    df = api_retrieving(data_source, fields, start_date, end_date)
-except Exception as e:
-    st.error(f"Errore nel recupero dei dati: {str(e)}")
-    return
+1. Implementazione del layout responsive
 
 2. Ottimizzazione delle query del database
 
@@ -27,7 +21,7 @@ def fetch_and_process_data(start_date, end_date):
 # Uso:
 data = fetch_and_process_data(start_date, end_date)
 
-4. Utilizzo di list comprehension e funzioni di aggregazione
+6. Utilizzo di list comprehension e funzioni di aggregazione
 
 # Invece di cicli for
 filtered_counts = {stage: opportunitàPerStage.get(stage, 0) for stage in opportunitàPerse}
