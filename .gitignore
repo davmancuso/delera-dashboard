@@ -1,8 +1,8 @@
-#Global
-tbd.txt
-
 # Streamlit
 .streamlit/secrets.toml
+
+# Progetto
+tbd.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
