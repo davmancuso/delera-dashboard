@@ -99,7 +99,8 @@ class GadsAnalyzer(BaseAnalyzer):
             'click': df["clicks"].sum(),
             'campagne_attive': df["campaign"].nunique(),
             'spesa_giornaliera': df.groupby('date')['spend'].sum().reset_index(),
-            'dettaglio_campagne': self.get_campaign_details(df)
+            'dettaglio_campagne': self.get_campaign_details(df),
+            'dettaglio_keyword': self.get_keyword_details(df)
         }
 
         for r in [aggregate_results]:
@@ -136,6 +137,25 @@ class GadsAnalyzer(BaseAnalyzer):
         dettaglioCampagne['CPC'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']).fillna(0)
 
         return dettaglioCampagne
+
+    def get_keyword_details(self, df):
+        dettaglioKeyword = df.groupby('keyword_text').agg({
+            'spend': 'sum',
+            'impressions': 'sum',
+            'clicks': 'sum'
+        }).reset_index()
+
+        dettaglioKeyword.rename(columns={
+            'campaign': 'Campagna',
+            'spend': 'Spesa',
+            'impressions': 'Impression',
+            'clicks': 'Click'
+        }, inplace=True)
+
+        dettaglioKeyword['CTR'] = (dettaglioKeyword['Click'] / dettaglioKeyword['Impression'] * 100).fillna(0)
+        dettaglioKeyword['CPC'] = (dettaglioKeyword['Spesa'] / dettaglioKeyword['Click']).fillna(0)
+
+        return dettaglioKeyword
 
 class GanalyticsAnalyzer(BaseAnalyzer):
     def __init__(self, start_date, end_date, comparison_start, comparison_end, ganalytics_account):

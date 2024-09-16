@@ -59,6 +59,6 @@ STAGES = {
 
 FIELDS = {
     'meta': "datasource,source,account_name,date,campaign,spend,impressions,outbound_clicks_outbound_click",
-    'gads': "datasource,source,account_name,date,campaign,spend,impressions,clicks",
+    'gads': "datasource,source,account_name,date,campaign,spend,impressions,clicks,keyword_text",
     'ganalytics': "datasource,source,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
 }

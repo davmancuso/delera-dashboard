@@ -183,6 +183,14 @@ def gads_campaign_details(dettaglioCampagne):
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
     st.dataframe(dettaglioCampagne)
 
+def gads_keyword_details(dettaglioKeyword):
+    dettaglioKeyword = dettaglioKeyword.sort_values(by='Spesa', ascending=False)
+    
+    dettaglioKeyword['Spesa'] = dettaglioKeyword['Spesa'].apply(currency)
+    dettaglioKeyword['CTR'] = dettaglioKeyword['CTR'].apply(percentage)
+    dettaglioKeyword['CPC'] = dettaglioKeyword['CPC'].apply(currency)
+    st.dataframe(dettaglioKeyword)
+
 def gads_analysis(results, results_comp):
     st.title("Analisi delle campagne Google")
 
@@ -204,6 +212,13 @@ def gads_analysis(results, results_comp):
         gads_campaign_details(results['dettaglio_campagne'].copy())
     except Exception as e:
         st.error(f"Si è verificato un errore durante l'elaborazione delle campange su Google Ads: {str(e)}")
+
+    st.title("Dettaglio delle keyword")
+
+    try:
+        gads_keyword_details(results['dettaglio_keyword'].copy())
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione delle keyword su Google Ads: {str(e)}")
 
 # ------------------------------
 #        GOOGLE ANALYTICS
