@@ -178,7 +178,7 @@ def gads_spend_chart(results, results_comp):
     st.plotly_chart(fig_spend)
 
 def gads_campaign_details(dettaglioCampagne):
-    dettaglioCampagne = dettaglioKeyword.sort_values(by='Spesa', ascending=False)
+    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False)
 
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
     dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
