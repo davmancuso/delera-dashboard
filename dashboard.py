@@ -74,9 +74,13 @@ st.title("Parametri della analisi")
 
 col_date1, col_date2 = st.columns(2)
 with col_date1:
-    start_date = st.date_input("Inizio", (datetime.today() - timedelta(days=14)), format="DD/MM/YYYY")
+    start_date = st.date_input(
+        "Inizio", datetime.now() - timedelta(days=14), format="DD/MM/YYYY"
+    )
 with col_date2:
-    end_date = st.date_input("Fine", (datetime.today() - timedelta(days=1)), format="DD/MM/YYYY")
+    end_date = st.date_input(
+        "Fine", datetime.now() - timedelta(days=1), format="DD/MM/YYYY"
+    )
 
 update_radio = st.radio(
     "Tipologia di aggiornamento delle opportunità",
@@ -102,7 +106,7 @@ if st.button("Scarica i dati") & privacy:
         update_type = "createdAt"
     else:
         update_type = "lastStageChangeAt"
-    
+
     # Database connection
     # ------------------------------
     pool = mysql.connector.pooling.MySQLConnectionPool(
