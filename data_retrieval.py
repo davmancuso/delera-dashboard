@@ -60,36 +60,52 @@ def opp_retrieving(pool, update_type, start_date, end_date):
 
     return df_raw
 
-def lead_retrieving(pool, start_date, end_date):
+def attribution_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
+    if update_type == "data_acquisizione":
+        query_parameter = "contact_custom_fields.value"
+        query_update = f"FROM_UNIXTIME({query_parameter} / 1000, '%d/%m/%Y')"
+        filter_update = f"FROM_UNIXTIME({query_parameter} / 1000, '%Y-%m-%d')"
+    elif update_type == "createdAt":
+        query_parameter = "opportunities.createdAt"
+        query_update = f"DATE({query_parameter})"
+        filter_update = f"DATE({query_parameter})"
+    else:
+        query_parameter = "opportunities.lastStageChangeAt"
+        query_update = f"DATE({query_parameter})"
+        filter_update = f"DATE({query_parameter})"
+    
     query = f"""
                 SELECT
-                    contacts.email,
-                    sub_account_custom_fields.name AS custom_field_name,
-                    FROM_UNIXTIME(contact_custom_fields.value / 1000, '%d/%m/%Y') AS custom_field_value,
-                    additional_custom_field.value AS additional_custom_field_value,
-                    opportunity_pipeline_stages.name AS pipeline_stage_name
+                    {query_update} AS {update_type},
+                    COALESCE(additional_custom_field.value, 'Non specificato') AS fonte,
+                    opportunity_pipeline_stages.name AS pipeline_stage_name,
+                    opportunities.monetaryValue AS opportunity_monetary_value
                 FROM
-                    contacts
-                    JOIN contact_custom_fields ON contacts.id = contact_custom_fields.contactId
-                    JOIN sub_account_custom_fields ON contact_custom_fields.id = sub_account_custom_fields.id
-                    LEFT JOIN contact_custom_fields AS additional_custom_field
+                    opportunities
+                    LEFT JOIN contacts ON opportunities.contactId = contacts.id
+                    LEFT JOIN contact_custom_fields AS additional_custom_field 
                         ON contacts.id = additional_custom_field.contactId
                         AND additional_custom_field.id = 'UiALy82OthZAitbSZTOU'
-                    LEFT JOIN opportunities ON contacts.id = opportunities.contactId
-                    LEFT JOIN opportunity_pipeline_stages ON opportunities.pipelineStageId = opportunity_pipeline_stages.id
+                    LEFT JOIN opportunity_pipeline_stages 
+                        ON opportunities.pipelineStageId = opportunity_pipeline_stages.id
+                    LEFT JOIN contact_custom_fields 
+                        ON contacts.id = contact_custom_fields.contactId
+                    LEFT JOIN sub_account_custom_fields 
+                        ON contact_custom_fields.id = sub_account_custom_fields.id
                 WHERE
                     sub_account_custom_fields.locationId = '{st.secrets.id_cliente}'
+                    AND opportunity_pipeline_stages.pipelineId='{st.secrets.pipeline_vendita}'
                     AND sub_account_custom_fields.id = 'ok7yK4uSS6wh0S2DnZrz'
-                    AND FROM_UNIXTIME(contact_custom_fields.value / 1000, '%Y-%m-%d') BETWEEN {start_date} AND {end_date};
+                    AND {filter_update} BETWEEN '{start_date}' AND '{end_date}';
             """
-
+    
     cursor.execute(query)
 
     df_raw = cursor.fetchall()
-
+    
     cursor.close()
     conn.close()
 

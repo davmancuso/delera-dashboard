@@ -76,13 +76,40 @@ def meta_spend_chart(results, results_comp):
 
     st.plotly_chart(fig_spend)
 
+def meta_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        attribution_delta = get_metric_delta(attribution_results["lead_meta"], attribution_results_comp["lead_meta"])
+        display_metric("Lead Meta", attribution_results["lead_meta"], attribution_delta)
+
+        cpl = results["spesa_totale"] / attribution_results["lead_meta"] if attribution_results["lead_meta"] != 0 else 0
+        cpl_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_meta"] if attribution_results_comp["lead_meta"] != 0 else 0
+        cpl_delta = get_metric_delta(cpl, cpl_comp)
+        display_metric("Cpl", currency(cpl), cpl_delta, is_delta_inverse=True)
+    with col2:
+        attribution_qualificati_delta = get_metric_delta(attribution_results["lead_meta_qualificati"], attribution_results_comp["lead_meta_qualificati"])
+        display_metric("Lead Meta Qualificati", attribution_results["lead_meta_qualificati"], attribution_qualificati_delta)
+
+        cpl_qualificati = results["spesa_totale"] / attribution_results["lead_meta_qualificati"] if attribution_results["lead_meta_qualificati"] != 0 else 0
+        cpl_qualificati_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_meta_qualificati"] if attribution_results_comp["lead_meta_qualificati"] != 0 else 0
+        cpl_qualificati_delta = get_metric_delta(cpl_qualificati, cpl_qualificati_comp)
+        display_metric("Cpl Qualificati", currency(cpl_qualificati), cpl_qualificati_delta, is_delta_inverse=True)
+    with col3:
+        attribution_vinti_delta = get_metric_delta(attribution_results["lead_meta_vinti"], attribution_results_comp["lead_meta_vinti"])
+        display_metric("Lead Meta Vinti", attribution_results["lead_meta_vinti"], attribution_vinti_delta)
+
+        cpl_vinti = results["spesa_totale"] / attribution_results["lead_meta_vinti"] if attribution_results["lead_meta_vinti"] != 0 else 0
+        cpl_vinti_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_meta_vinti"] if attribution_results_comp["lead_meta_vinti"] != 0 else 0
+        cpl_vinti_delta = get_metric_delta(cpl_vinti, cpl_vinti_comp)
+        display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
+
 def meta_campaign_details(dettaglioCampagne):
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
     dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
     st.dataframe(dettaglioCampagne)
 
-def meta_analysis(results, results_comp):
+def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Meta")
 
     col1, col2 = st.columns(2)
@@ -96,6 +123,17 @@ def meta_analysis(results, results_comp):
             meta_spend_chart(results, results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Meta: {str(e)}")
+    
+    st.title("Analisi delle attribuzioni Meta")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        try:
+            meta_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche di attribuzione di Meta: {str(e)}")
+    with col4:
+        pass
 
     st.title("Dettaglio delle campagne")
 
@@ -177,6 +215,33 @@ def gads_spend_chart(results, results_comp):
 
     st.plotly_chart(fig_spend)
 
+def gads_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        attribution_delta = get_metric_delta(attribution_results["lead_google"], attribution_results_comp["lead_google"])
+        display_metric("Lead Google", attribution_results["lead_google"], attribution_delta)
+
+        cpl = results["spesa_totale"] / attribution_results["lead_google"] if attribution_results["lead_google"] != 0 else 0
+        cpl_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_google"] if attribution_results_comp["lead_google"] != 0 else 0
+        cpl_delta = get_metric_delta(cpl, cpl_comp)
+        display_metric("Cpl", currency(cpl), cpl_delta, is_delta_inverse=True)
+    with col2:
+        attribution_qualificati_delta = get_metric_delta(attribution_results["lead_google_qualificati"], attribution_results_comp["lead_google_qualificati"])
+        display_metric("Lead Google Qualificati", attribution_results["lead_google_qualificati"], attribution_qualificati_delta)
+
+        cpl_qualificati = results["spesa_totale"] / attribution_results["lead_google_qualificati"] if attribution_results["lead_google_qualificati"] != 0 else 0
+        cpl_qualificati_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_google_qualificati"] if attribution_results_comp["lead_google_qualificati"] != 0 else 0
+        cpl_qualificati_delta = get_metric_delta(cpl_qualificati, cpl_qualificati_comp)
+        display_metric("Cpl Qualificati", currency(cpl_qualificati), cpl_qualificati_delta, is_delta_inverse=True)
+    with col3:
+        attribution_vinti_delta = get_metric_delta(attribution_results["lead_google_vinti"], attribution_results_comp["lead_google_vinti"])
+        display_metric("Lead Google Vinti", attribution_results["lead_google_vinti"], attribution_vinti_delta)
+
+        cpl_vinti = results["spesa_totale"] / attribution_results["lead_google_vinti"] if attribution_results["lead_google_vinti"] != 0 else 0
+        cpl_vinti_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_google_vinti"] if attribution_results_comp["lead_google_vinti"] != 0 else 0
+        cpl_vinti_delta = get_metric_delta(cpl_vinti, cpl_vinti_comp)
+        display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
+
 def gads_campaign_details(dettaglioCampagne):
     dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False)
 
@@ -193,7 +258,7 @@ def gads_keyword_details(dettaglioKeyword):
     dettaglioKeyword['CPC'] = dettaglioKeyword['CPC'].apply(currency)
     st.dataframe(dettaglioKeyword)
 
-def gads_analysis(results, results_comp):
+def gads_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Google")
 
     col1, col2 = st.columns(2)
@@ -207,6 +272,17 @@ def gads_analysis(results, results_comp):
             gads_spend_chart(results, results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di Google Ads: {str(e)}")
+
+    st.title("Analisi delle attribuzioni Google")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        try:
+            gads_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche di attribuzione di Google Ads: {str(e)}")
+    with col4:
+        pass
     
     st.title("Dettaglio delle campagne")
 
@@ -710,3 +786,77 @@ def economics_analysis(meta_results, meta_results_comp, gads_results, gads_resul
             economics_fatturato_giornaliero_chart(opp_results, opp_results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico del fatturato giornaliero: {str(e)}")
+
+# ------------------------------
+#          ATTRIBUTION
+# ------------------------------
+def attribution_metrics(attribution_results, attribution_results_comp):
+    attribution_fonti = [fonte for fonte in attribution_results['lead_fonti'] if fonte is not None]
+    attribution_counts = {fonte: attribution_results[fonte] for fonte in sorted(attribution_fonti)}
+    
+    display_metric("Attribuzioni totali", attribution_results["totali"], get_metric_delta(attribution_results["totali"], attribution_results_comp["totali"]))
+
+    cols = st.columns(3)
+    for i, (fonte, count) in enumerate(attribution_counts.items()):
+        count_comp = attribution_results_comp.get(fonte, 0)
+        delta = get_metric_delta(count, count_comp)
+        with cols[i % 3]:
+            display_metric(fonte, count, delta)
+        if (i + 1) % 3 == 0:
+            st.write("")
+
+def attribution_percentage_chart(opp_results, opp_results_comp, attribution_results, attribution_results_comp):
+    total_attributions = attribution_results["totali"]
+    total_opportunities = opp_results["totali"]
+
+    total_attributions_comp = attribution_results_comp["totali"]
+    total_opportunities_comp = opp_results_comp["totali"]
+
+    attribution_ratio = total_attributions / total_opportunities if total_opportunities != 0 else 0
+    attribution_ratio_comp = total_attributions_comp / total_opportunities_comp if total_opportunities_comp != 0 else 0
+
+    delta = get_metric_delta(attribution_ratio, attribution_ratio_comp)
+
+    fig_gauge = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=float(attribution_ratio) * 100,
+        number={'suffix': "%"},
+        delta={'reference': attribution_ratio_comp * 100, 'relative': True, 'position': "bottom", 'valueformat': ".2f", 'font': {'size': 16}},
+        gauge={
+            'axis': {'range': [0, 100]},
+            'bar': {'color': "#b12b94"},
+            'steps': [
+                {'range': [0, 25], 'color': '#f0f2f6'},
+                {'range': [25, 50], 'color': '#f0f2f6'},
+                {'range': [50, 75], 'color': '#f0f2f6'},
+                {'range': [75, 100], 'color': '#f0f2f6'}
+            ],
+            'threshold': {
+                'line': {'color': "#1a1e1c", 'width': 4},
+                'thickness': 0.75,
+                'value': 100
+            }
+        }
+    ))
+
+    fig_gauge.update_layout(
+        title="Percentuale di lead con attribuzione",
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+
+    st.plotly_chart(fig_gauge)
+
+def attribution_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, attribution_results, attribution_results_comp):
+    st.title("Attribuzione delle opportunità")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        try:
+            attribution_metrics(attribution_results, attribution_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche di attribuzione: {str(e)}")
+    with col2:
+        try:
+            attribution_percentage_chart(opp_results, opp_results_comp, attribution_results, attribution_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico delle percentuali di attribuzione: {str(e)}")

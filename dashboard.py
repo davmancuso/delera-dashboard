@@ -5,10 +5,19 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from config import STAGES, FIELDS
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
-from data_retrieval import api_retrieve_data, opp_retrieving, lead_retrieving
-from data_visualization import meta_analysis, gads_analysis, ganalytics_analysis, lead_analysis, performance_analysis, opp_analysis, economics_analysis
+from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving
+from data_visualization import (
+    meta_analysis, 
+    gads_analysis, 
+    ganalytics_analysis, 
+    lead_analysis, 
+    performance_analysis, 
+    opp_analysis, 
+    economics_analysis, 
+    attribution_analysis
+)
 
 # ------------------------------
 #             STYLE
@@ -72,24 +81,35 @@ locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 st.title("Parametri della analisi")
 
-col_date1, col_date2 = st.columns(2)
-with col_date1:
+col1, col2 = st.columns(2)
+with col1:
     start_date = st.date_input(
         "Inizio", datetime.now() - timedelta(days=14), format="DD/MM/YYYY"
     )
-with col_date2:
+with col2:
     end_date = st.date_input(
         "Fine", datetime.now() - timedelta(days=1), format="DD/MM/YYYY"
     )
 
-update_radio = st.radio(
-    "Tipologia di aggiornamento delle opportunità",
-    ["Creazione", "Lavorazione"],
-    captions=[
-        "Aggiorna i dati in base alla data di creazione dell'opportunità",
-        "Aggiorna i dati in base alla data di cambio stage dell'opportunità"
-    ],
-)
+col3, col4 = st.columns(2)
+with col3:
+    opp_radio = st.radio(
+        "Tipologia di aggiornamento delle opportunità",
+        ["Creazione", "Lavorazione"],
+        captions=[
+            "Aggiorna i dati in base alla data di creazione dell'opportunità",
+            "Aggiorna i dati in base alla data di cambio stage dell'opportunità"
+        ],
+    )
+with col4:
+    lead_radio = st.radio(
+        "Tipologia di aggiornamento dei lead",
+        ["Acquisizione", "Opportunità"],
+        captions=[
+            "Aggiorna i dati in base alla data di acquisizione del lead",
+            "Aggiorna i dati in base alla data di lavorazione dell'opportunità correlata"
+        ],
+    )
 
 privacy = st.checkbox("Accetto il trattamento dei miei dati secondo le normative vigenti.", value=False)
 
@@ -102,10 +122,15 @@ if st.button("Scarica i dati") & privacy:
     comparison_start = start_date - period
     comparison_end = start_date -  timedelta(days=1)
 
-    if update_radio == "Creazione":
-        update_type = "createdAt"
+    if opp_radio == "Creazione":
+        update_type_opp = "createdAt"
     else:
-        update_type = "lastStageChangeAt"
+        update_type_opp = "lastStageChangeAt"
+    
+    if lead_radio == "Acquisizione":
+        update_type_lead = "data_acquisizione"
+    else:
+        update_type_lead = update_type_opp
 
     # Database connection
     # ------------------------------
@@ -131,10 +156,16 @@ if st.button("Scarica i dati") & privacy:
         globals()[df_name] = api_retrieve_data(source, fields, comparison_start, end_date)
 
     try:
-        df_opp_raw = opp_retrieving(pool, update_type, comparison_start, end_date)
+        df_opp_raw = opp_retrieving(pool, update_type_opp, comparison_start, end_date)
     except Exception as e:
         st.warning(f"Errore nel recupero dei dati da opportunità: {str(e)}")
         df_opp_raw = pd.DataFrame()
+    
+    try:
+        df_attribution_raw = attribution_retrieving(pool, update_type_lead, comparison_start, end_date)
+    except Exception as e:
+        st.warning(f"Errore nel recupero dei dati da lead: {str(e)}")
+        df_attribution_raw = pd.DataFrame()
 
     # Data processing
     # ------------------------------
@@ -160,21 +191,28 @@ if st.button("Scarica i dati") & privacy:
         ganalytics_results, ganalytics_results_comp = {}, {}
 
     try:
-        opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type)
+        opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_opp)
         opp_results, opp_results_comp = opp_analyzer.analyze(df_opp_raw)
     except Exception as e:
         st.warning(f"Errore nell'elaborazione dei dati da opportunità: {str(e)}")
         opp_results, opp_results_comp = {}, {}
+    
+    try:
+        attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_lead)
+        attribution_results, attribution_results_comp = attribution_analyzer.analyze(df_attribution_raw)
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati da lead: {str(e)}")
+        attribution_results, attribution_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------
     economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
     performance_analysis(opp_results, opp_results_comp)
-    meta_analysis(meta_results, meta_results_comp)
-    gads_analysis(gads_results, gads_results_comp)
+    meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)
+    gads_analysis(gads_results, gads_results_comp, attribution_results, attribution_results_comp)
     lead_analysis(opp_results, opp_results_comp)
     opp_analysis(opp_results, opp_results_comp)
+    attribution_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, attribution_results, attribution_results_comp)
     ganalytics_analysis(ganalytics_results, ganalytics_results_comp)
 
     # DA FARE: analisi dei flussi dei singoli funnel
-    # DA FARE: aggiunta dell'attribuzione dei lead

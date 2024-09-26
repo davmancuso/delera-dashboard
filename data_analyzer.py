@@ -372,3 +372,61 @@ class OppAnalyzer(BaseAnalyzer):
         incasso_giorno['count'] = incasso_giorno['count'].fillna(0)
 
         return incasso_giorno
+
+class AttributionAnalyzer(BaseAnalyzer):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end, update_type):
+        super().__init__(start_date, end_date, comparison_start, comparison_end)
+        self.update_type = update_type
+    
+    def clean_data(self, df, is_comparison=False):
+        start = self.comparison_start if is_comparison else self.start_date
+        end = self.comparison_end if is_comparison else self.end_date
+        
+        df[self.update_type] = pd.to_datetime(df[self.update_type], dayfirst=True)
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+        
+        df = df.loc[
+            (df[self.update_type] >= start) &
+            (df[self.update_type] <= end) &
+            (df['pipeline_stage_name'].isin(STAGES['stages'])) &
+            (df['fonte'].notna())
+        ]
+
+        return df
+    
+    def aggregate_results(self, df, is_comparison=False):
+        aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
+            'totali': len(df),
+            'lead_fonti': df['fonte'].unique().tolist(),
+            **{fonte: df[df['fonte'] == fonte].shape[0] for fonte in df['fonte'].unique()},
+            'lead_meta': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['stages']))].shape[0],
+            'lead_meta_da_qualificare': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['daQualificare']))].shape[0],
+            'lead_meta_qualificati': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['qualificati']))].shape[0],
+            'lead_meta_lead_persi': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['leadPersi']))].shape[0],
+            'lead_meta_vendite_gestione': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeGestione']))].shape[0],
+            'lead_meta_vendite_da_chiudere': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeChiusura']))].shape[0],
+            'lead_meta_vinti': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['vinti']))].shape[0],
+            'lead_meta_persi': df[(df['fonte'] == 'Facebook Ads') & (df['pipeline_stage_name'].isin(STAGES['persi']))].shape[0],
+            'lead_google': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['stages']))].shape[0],
+            'lead_google_da_qualificare': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['daQualificare']))].shape[0],
+            'lead_google_qualificati': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['qualificati']))].shape[0],
+            'lead_google_lead_persi': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['leadPersi']))].shape[0],
+            'lead_google_vendite_gestione': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeGestione']))].shape[0],
+            'lead_google_vendite_da_chiudere': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeChiusura']))].shape[0],
+            'lead_google_vinti': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['vinti']))].shape[0],
+            'lead_google_persi': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['persi']))].shape[0]
+        }
+        
+        return aggregate_results
+
+    def analyze(self, df_raw):
+        df = self.clean_data(df_raw)
+        df_comp = self.clean_data(df_raw, is_comparison=True)
+
+        results = self.aggregate_results(df)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
+
+        return results, results_comp
