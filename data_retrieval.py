@@ -4,7 +4,7 @@ from urllib.request import urlopen
 import pandas as pd
 import mysql.connector
 
-from db import save_to_database_api, save_to_database_sql
+from db import save_to_database
 
 def api_retrieving(data_source, fields, start_date, end_date):
     url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
@@ -22,12 +22,12 @@ def api_retrieve_data(source, fields, start_date, end_date):
         df = api_retrieving(source, fields, start_date, end_date)
         
         try:
-            save_to_database_api(df, f"{source}_data")
+            save_to_database(df, f"{source}_data", is_api=True)
             st.success(f"Dati da {source} salvati correttamente")
         except Exception as e:
             st.error(f"Errore nel salvare i dati da {source}: {str(e)}")
     except Exception as e:
-        st.warning(f"Errore nel recupero dei dati da {source}: {str(e)}")
+        st.error(f"Errore nel recupero dei dati da {source}: {str(e)}")
 
 def opp_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
@@ -64,7 +64,7 @@ def opp_retrieving(pool, update_type, start_date, end_date):
     df_raw['lastStageChangeAt'] = pd.to_datetime(df_raw['lastStageChangeAt']).dt.date
 
     try:
-        save_to_database_sql(df_raw, "opp_data")
+        save_to_database(df_raw, "opp_data", is_api=False)
         st.success(f"Dati da opportunità salvati correttamente")
     except Exception as e:
         st.error(f"Errore nel salvare i dati da opportunità: {str(e)}")
@@ -118,7 +118,7 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     df_raw = pd.DataFrame(df_raw, columns=cursor.column_names)
 
     try:
-        save_to_database_sql(df_raw, "attribution_data")
+        save_to_database(df_raw, "attribution_data", is_api=False)
         st.success(f"Dati da attribuzione salvati correttamente")
     except Exception as e:
         st.error(f"Errore nel salvare i dati da attribuzione: {str(e)}")

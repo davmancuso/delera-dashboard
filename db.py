@@ -26,40 +26,26 @@ def initialize_database():
     conn.commit()
     conn.close()
 
-def save_to_database_api(df, table_name):
+def save_to_database(df, table_name, is_api=True):
     conn = sqlite3.connect('local_data.db')
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT date, campaign FROM {table_name}")
-    existing_data = set(row[0] for row in cursor.fetchall())
+    if is_api:
+        key_columns = ['date', 'campaign']
+        cursor.execute(f"SELECT {', '.join(key_columns)} FROM {table_name}")
+    else:
+        key_columns = ['id']
+        cursor.execute(f"SELECT id FROM {table_name}")
+
+    existing_data = set(tuple(row) for row in cursor.fetchall())
 
     for _, row in df.iterrows():
-        key = (row['date'], row['campaign'])
+        key = tuple(row[col] for col in key_columns)
         if key in existing_data:
             update_query = f"UPDATE {table_name} SET "
-            update_query += ", ".join([f"{col} = ?" for col in df.columns if col not in ['date', 'campaign']])
-            update_query += " WHERE date = ? AND campaign = ?"
-            cursor.execute(update_query, [row[col] for col in df.columns if col not in ['date', 'campaign']] + list(key))
-        else:
-            insert_query = f"INSERT INTO {table_name} ({', '.join(df.columns)}) VALUES ({', '.join(['?' for _ in df.columns])})"
-            cursor.execute(insert_query, row.tolist())
-
-    conn.commit()
-    conn.close()
-
-def save_to_database_sql(df, table_name):
-    conn = sqlite3.connect('local_data.db')
-    cursor = conn.cursor()
-
-    cursor.execute(f"SELECT id FROM {table_name}")
-    existing_ids = set(row[0] for row in cursor.fetchall())
-
-    for _, row in df.iterrows():
-        if row['id'] in existing_ids:
-            update_query = f"UPDATE {table_name} SET "
-            update_query += ", ".join([f"{col} = ?" for col in df.columns if col != 'id'])
-            update_query += " WHERE id = ?"
-            cursor.execute(update_query, [row[col] for col in df.columns if col != 'id'] + [row['id']])
+            update_query += ", ".join([f"{col} = ?" for col in df.columns if col not in key_columns])
+            update_query += f" WHERE {' AND '.join([f'{col} = ?' for col in key_columns])}"
+            cursor.execute(update_query, [row[col] for col in df.columns if col not in key_columns] + list(key))
         else:
             insert_query = f"INSERT INTO {table_name} ({', '.join(df.columns)}) VALUES ({', '.join(['?' for _ in df.columns])})"
             cursor.execute(insert_query, row.tolist())
