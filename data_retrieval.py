@@ -4,6 +4,8 @@ from urllib.request import urlopen
 import pandas as pd
 import mysql.connector
 
+from db import save_to_database_api, save_to_database_sql
+
 def api_retrieving(data_source, fields, start_date, end_date):
     url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
     
@@ -17,13 +19,15 @@ def api_retrieving(data_source, fields, start_date, end_date):
 
 def api_retrieve_data(source, fields, start_date, end_date):
     try:
-        if source == 'opportunities':
-            return opp_created_retrieving(pool, start_date, end_date)
-        else:
-            return api_retrieving(source, fields, start_date, end_date)
+        df = api_retrieving(source, fields, start_date, end_date)
+        
+        try:
+            save_to_database_api(df, f"{source}_data")
+            st.success(f"Dati da {source} salvati correttamente")
+        except Exception as e:
+            st.error(f"Errore nel salvare i dati da {source}: {str(e)}")
     except Exception as e:
         st.warning(f"Errore nel recupero dei dati da {source}: {str(e)}")
-        return pd.DataFrame()
 
 def opp_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
@@ -31,6 +35,7 @@ def opp_retrieving(pool, update_type, start_date, end_date):
     
     query = f"""
                 SELECT
+                    o.id AS id,
                     o.createdAt,
                     o.lastStageChangeAt,
                     o.monetaryValue,
@@ -58,28 +63,29 @@ def opp_retrieving(pool, update_type, start_date, end_date):
     df_raw['createdAt'] = pd.to_datetime(df_raw['createdAt']).dt.date
     df_raw['lastStageChangeAt'] = pd.to_datetime(df_raw['lastStageChangeAt']).dt.date
 
-    return df_raw
+    try:
+        save_to_database_sql(df_raw, "opp_data")
+        st.success(f"Dati da opportunità salvati correttamente")
+    except Exception as e:
+        st.error(f"Errore nel salvare i dati da opportunità: {str(e)}")
 
 def attribution_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
     if update_type == "data_acquisizione":
-        query_parameter = "contact_custom_fields.value"
-        query_update = f"FROM_UNIXTIME({query_parameter} / 1000, '%d/%m/%Y')"
-        filter_update = f"FROM_UNIXTIME({query_parameter} / 1000, '%Y-%m-%d')"
+        filter_update = f"FROM_UNIXTIME(contact_custom_fields.value / 1000, '%Y-%m-%d')"
     elif update_type == "createdAt":
-        query_parameter = "opportunities.createdAt"
-        query_update = f"DATE({query_parameter})"
-        filter_update = f"DATE({query_parameter})"
+        filter_update = f"DATE(opportunities.createdAt)"
     else:
-        query_parameter = "opportunities.lastStageChangeAt"
-        query_update = f"DATE({query_parameter})"
-        filter_update = f"DATE({query_parameter})"
+        filter_update = f"DATE(opportunities.lastStageChangeAt)"
     
     query = f"""
                 SELECT
-                    {query_update} AS {update_type},
+                    opportunities.id AS id,
+                    opportunities.createdAt AS createdAt,
+                    opportunities.lastStageChangeAt AS lastStageChangeAt,
+                    contact_custom_fields.value AS data_acquisizione,
                     COALESCE(additional_custom_field.value, 'Non specificato') AS fonte,
                     opportunity_pipeline_stages.name AS pipeline_stage_name,
                     opportunities.monetaryValue AS opportunity_monetary_value
@@ -109,4 +115,10 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     cursor.close()
     conn.close()
 
-    return pd.DataFrame(df_raw, columns=cursor.column_names)
+    df_raw = pd.DataFrame(df_raw, columns=cursor.column_names)
+
+    try:
+        save_to_database_sql(df_raw, "attribution_data")
+        st.success(f"Dati da attribuzione salvati correttamente")
+    except Exception as e:
+        st.error(f"Errore nel salvare i dati da attribuzione: {str(e)}")

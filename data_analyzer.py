@@ -1,6 +1,9 @@
 import pandas as pd
 import streamlit as st
+import datetime
+
 from config import STAGES
+from db import get_data
 
 class BaseAnalyzer:
     def __init__(self, start_date, end_date, comparison_start, comparison_end):
@@ -10,19 +13,12 @@ class BaseAnalyzer:
         self.comparison_end = comparison_end
 
 class MetaAnalyzer(BaseAnalyzer):
-    def __init__(self, start_date, end_date, comparison_start, comparison_end, meta_account):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
-        self.meta_account = meta_account
     
-    def clean_data(self, df, is_comparison=False):
-        start = self.comparison_start if is_comparison else self.start_date
-        end = self.comparison_end if is_comparison else self.end_date
-        
+    def clean_data(self, df):
         return df.loc[
-            (df["datasource"] == "facebook") &
-            (df["account_name"] == self.meta_account) &
-            (df["date"] >= start) &
-            (df["date"] <= end) &
+            (df["account_id"] == st.secrets["facebook_account_id"]) &
             (~df["campaign"].str.contains(r"\[HR\]")) &
             (~df["campaign"].str.contains(r"DENTALAI"))
         ]
@@ -46,13 +42,15 @@ class MetaAnalyzer(BaseAnalyzer):
         
         return aggregate_results
 
-    def analyze(self, df_raw):
+    def analyze(self):
+        df_raw = get_data("facebook_data", self.start_date, self.end_date)
+        df_raw_comp = get_data("facebook_data", self.comparison_start, self.comparison_end)
+
         df = self.clean_data(df_raw)
-        df_comp = self.clean_data(df_raw, is_comparison=True)
+        df_comp = self.clean_data(df_raw_comp)
 
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
-
         return results, results_comp
     
     def get_campaign_details(self, df):
@@ -75,19 +73,12 @@ class MetaAnalyzer(BaseAnalyzer):
         return dettaglioCampagne
 
 class GadsAnalyzer(BaseAnalyzer):
-    def __init__(self, start_date, end_date, comparison_start, comparison_end, gads_account):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
-        self.gads_account = gads_account
     
-    def clean_data(self, df, is_comparison=False):
-        start = self.comparison_start if is_comparison else self.start_date
-        end = self.comparison_end if is_comparison else self.end_date
-        
+    def clean_data(self, df):
         return df.loc[
-            (df["datasource"] == "google") &
-            (df["account_name"] == self.gads_account) &
-            (df["date"] >= start) &
-            (df["date"] <= end)
+            (df["account_id"] == st.secrets["google_ads_account_id"])
         ]
     
     def aggregate_results(self, df, is_comparison=False):
@@ -110,13 +101,15 @@ class GadsAnalyzer(BaseAnalyzer):
         
         return aggregate_results
 
-    def analyze(self, df_raw):
+    def analyze(self):
+        df_raw = get_data("google_ads_data", self.start_date, self.end_date)
+        df_raw_comp = get_data("google_ads_data", self.comparison_start, self.comparison_end)
+        
         df = self.clean_data(df_raw)
-        df_comp = self.clean_data(df_raw, is_comparison=True)
+        df_comp = self.clean_data(df_raw_comp)
 
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
-
         return results, results_comp
     
     def get_campaign_details(self, df):
@@ -158,19 +151,12 @@ class GadsAnalyzer(BaseAnalyzer):
         return dettaglioKeyword
 
 class GanalyticsAnalyzer(BaseAnalyzer):
-    def __init__(self, start_date, end_date, comparison_start, comparison_end, ganalytics_account):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
-        self.ganalytics_account = ganalytics_account
     
-    def clean_data(self, df, is_comparison=False):
-        start = self.comparison_start if is_comparison else self.start_date
-        end = self.comparison_end if is_comparison else self.end_date
-        
+    def clean_data(self, df):
         return df.loc[
-            (df["datasource"] == "googleanalytics4") &
-            (df["account_name"] == self.ganalytics_account) &
-            (df["date"] >= start) &
-            (df["date"] <= end)
+            (df["account_id"] == st.secrets["googleanalytics4_account_id"])
         ]
     
     def aggregate_results(self, df, is_comparison=False):
@@ -194,13 +180,15 @@ class GanalyticsAnalyzer(BaseAnalyzer):
         
         return aggregate_results
 
-    def analyze(self, df_raw):
+    def analyze(self):
+        df_raw = get_data("googleanalytics4_data", self.start_date, self.end_date)
+        df_raw_comp = get_data("googleanalytics4_data", self.comparison_start, self.comparison_end)
+        
         df = self.clean_data(df_raw)
-        df_comp = self.clean_data(df_raw, is_comparison=True)
+        df_comp = self.clean_data(df_raw_comp)
 
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
-
         return results, results_comp
     
     def get_session_distribution(self, df):
@@ -243,14 +231,6 @@ class OppAnalyzer(BaseAnalyzer):
         self.update_type = update_type
     
     def clean_data(self, df, is_comparison=False):
-        start = self.comparison_start if is_comparison else self.start_date
-        end = self.comparison_end if is_comparison else self.end_date
-        
-        df = df.loc[
-            (df[self.update_type] >= start) &
-            (df[self.update_type] <= end)
-        ]
-
         df[self.update_type] = pd.to_datetime(df[self.update_type])
 
         return df
@@ -285,9 +265,12 @@ class OppAnalyzer(BaseAnalyzer):
         
         return aggregate_results
 
-    def analyze(self, df_raw):
+    def analyze(self):
+        df_raw = get_data("opp_data", self.start_date, self.end_date, custom_date_field=self.update_type)
+        df_raw_comp = get_data("opp_data", self.comparison_start, self.comparison_end, custom_date_field=self.update_type)
+
         df = self.clean_data(df_raw)
-        df_comp = self.clean_data(df_raw, is_comparison=True)
+        df_comp = self.clean_data(df_raw_comp)
 
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
@@ -379,16 +362,14 @@ class AttributionAnalyzer(BaseAnalyzer):
         self.update_type = update_type
     
     def clean_data(self, df, is_comparison=False):
-        start = self.comparison_start if is_comparison else self.start_date
-        end = self.comparison_end if is_comparison else self.end_date
-        
-        df[self.update_type] = pd.to_datetime(df[self.update_type], dayfirst=True)
-        start = pd.to_datetime(start)
-        end = pd.to_datetime(end)
-        
+        df["createdAt"] = pd.to_datetime(df["createdAt"])
+        df["lastStageChangeAt"] = pd.to_datetime(df["lastStageChangeAt"])
+        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"], unit='ms')
+        df["createdAt"] = df["createdAt"].dt.strftime('%d-%m-%Y')
+        df["lastStageChangeAt"] = df["lastStageChangeAt"].dt.strftime('%d-%m-%Y')
+        df["data_acquisizione"] = df["data_acquisizione"].dt.strftime('%d-%m-%Y')
+
         df = df.loc[
-            (df[self.update_type] >= start) &
-            (df[self.update_type] <= end) &
             (df['pipeline_stage_name'].isin(STAGES['stages'])) &
             (df['fonte'].notna())
         ]
@@ -422,9 +403,24 @@ class AttributionAnalyzer(BaseAnalyzer):
         
         return aggregate_results
 
-    def analyze(self, df_raw):
+    def analyze(self):
+        if self.update_type == "data_acquisizione":
+            start_datetime = datetime.datetime.combine(self.start_date, datetime.datetime.min.time())
+            start_date_ms = int(start_datetime.timestamp() * 1000)
+            end_datetime = datetime.datetime.combine(self.end_date, datetime.datetime.min.time())
+            end_date_ms = int(end_datetime.timestamp() * 1000)
+            start_comparison_datetime = datetime.datetime.combine(self.comparison_start, datetime.datetime.min.time())
+            start_comparison_date_ms = int(start_comparison_datetime.timestamp() * 1000)
+            end_comparison_datetime = datetime.datetime.combine(self.comparison_end, datetime.datetime.min.time())
+            end_comparison_date_ms = int(end_comparison_datetime.timestamp() * 1000)
+            df_raw = get_data("attribution_data", start_date_ms, end_date_ms, custom_date_field=self.update_type)
+            df_raw_comp = get_data("attribution_data", start_comparison_date_ms, end_comparison_date_ms, custom_date_field=self.update_type)
+        else:
+            df_raw = get_data("attribution_data", self.start_date, self.end_date, custom_date_field=self.update_type)
+            df_raw_comp = get_data("attribution_data", self.comparison_start, self.comparison_end, custom_date_field=self.update_type)
+
         df = self.clean_data(df_raw)
-        df_comp = self.clean_data(df_raw, is_comparison=True)
+        df_comp = self.clean_data(df_raw_comp)
 
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
