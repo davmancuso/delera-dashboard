@@ -364,7 +364,7 @@ class AttributionAnalyzer(BaseAnalyzer):
     def clean_data(self, df, is_comparison=False):
         df["createdAt"] = pd.to_datetime(df["createdAt"])
         df["lastStageChangeAt"] = pd.to_datetime(df["lastStageChangeAt"])
-        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"], unit='ms')
+        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"])
         df["createdAt"] = df["createdAt"].dt.strftime('%d-%m-%Y')
         df["lastStageChangeAt"] = df["lastStageChangeAt"].dt.strftime('%d-%m-%Y')
         df["data_acquisizione"] = df["data_acquisizione"].dt.strftime('%d-%m-%Y')
@@ -404,20 +404,8 @@ class AttributionAnalyzer(BaseAnalyzer):
         return aggregate_results
 
     def analyze(self):
-        if self.update_type == "data_acquisizione":
-            start_datetime = datetime.datetime.combine(self.start_date, datetime.datetime.min.time())
-            start_date_ms = int(start_datetime.timestamp() * 1000)
-            end_datetime = datetime.datetime.combine(self.end_date, datetime.datetime.min.time())
-            end_date_ms = int(end_datetime.timestamp() * 1000)
-            start_comparison_datetime = datetime.datetime.combine(self.comparison_start, datetime.datetime.min.time())
-            start_comparison_date_ms = int(start_comparison_datetime.timestamp() * 1000)
-            end_comparison_datetime = datetime.datetime.combine(self.comparison_end, datetime.datetime.min.time())
-            end_comparison_date_ms = int(end_comparison_datetime.timestamp() * 1000)
-            df_raw = get_data("attribution_data", start_date_ms, end_date_ms, custom_date_field=self.update_type)
-            df_raw_comp = get_data("attribution_data", start_comparison_date_ms, end_comparison_date_ms, custom_date_field=self.update_type)
-        else:
-            df_raw = get_data("attribution_data", self.start_date, self.end_date, custom_date_field=self.update_type)
-            df_raw_comp = get_data("attribution_data", self.comparison_start, self.comparison_end, custom_date_field=self.update_type)
+        df_raw = get_data("attribution_data", self.start_date, self.end_date, custom_date_field=self.update_type)
+        df_raw_comp = get_data("attribution_data", self.comparison_start, self.comparison_end, custom_date_field=self.update_type)
 
         df = self.clean_data(df_raw)
         df_comp = self.clean_data(df_raw_comp)

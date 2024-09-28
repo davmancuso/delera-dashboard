@@ -4,7 +4,7 @@ from urllib.request import urlopen
 import pandas as pd
 import mysql.connector
 
-from db import save_to_database
+from db import save_to_database, save_to_database_debug
 
 def api_retrieving(data_source, fields, start_date, end_date):
     url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
@@ -116,6 +116,12 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     conn.close()
 
     df_raw = pd.DataFrame(df_raw, columns=cursor.column_names)
+    df_raw['createdAt'] = pd.to_datetime(df_raw['createdAt']).dt.date
+    df_raw['lastStageChangeAt'] = pd.to_datetime(df_raw['lastStageChangeAt']).dt.date
+    df_raw['lastStageChangeAt'] = df_raw['lastStageChangeAt'].fillna(df_raw['createdAt'])
+    df_raw['data_acquisizione'] = pd.to_datetime(df_raw['data_acquisizione'], unit='ms', errors='coerce')
+    df_raw['data_acquisizione'] = df_raw['data_acquisizione'].dt.strftime('%Y-%m-%d').fillna('N/A')
+    df_raw['data_acquisizione'] = df_raw['data_acquisizione'].replace('NaT', 'N/A')
 
     try:
         save_to_database(df_raw, "attribution_data", is_api=False)

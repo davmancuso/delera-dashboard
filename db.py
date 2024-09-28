@@ -41,15 +41,64 @@ def save_to_database(df, table_name, is_api=True):
 
     for _, row in df.iterrows():
         key = tuple(row[col] for col in key_columns)
-        if key in existing_data:
+        key_str = tuple(str(k) for k in key)
+        if key_str in existing_data:
             update_query = f"UPDATE {table_name} SET "
             update_query += ", ".join([f"{col} = ?" for col in df.columns if col not in key_columns])
             update_query += f" WHERE {' AND '.join([f'{col} = ?' for col in key_columns])}"
-            cursor.execute(update_query, [row[col] for col in df.columns if col not in key_columns] + list(key))
+            update_values = [row[col] for col in df.columns if col not in key_columns] + list(key)
+            cursor.execute(update_query, update_values)
         else:
             insert_query = f"INSERT INTO {table_name} ({', '.join(df.columns)}) VALUES ({', '.join(['?' for _ in df.columns])})"
             cursor.execute(insert_query, row.tolist())
+        
+        existing_data.add(key_str)
 
+    conn.commit()
+    conn.close()
+
+def save_to_database_debug(df, table_name, is_api=True):
+    st.write(f"save_to_database {table_name}")
+    conn = sqlite3.connect('local_data.db')
+    cursor = conn.cursor()
+
+    if is_api:
+        st.write("is_api")
+        key_columns = ['date', 'campaign']
+        cursor.execute(f"SELECT {', '.join(key_columns)} FROM {table_name}")
+    else:
+        st.write("not is_api")
+        key_columns = ['id']
+        cursor.execute(f"SELECT id FROM {table_name}")
+
+    st.write(key_columns)
+
+    existing_data = set(tuple(row) for row in cursor.fetchall())
+    st.write(existing_data)
+
+    for _, row in df.iterrows():
+        st.write(row)
+        key = tuple(row[col] for col in key_columns)
+        st.write(key)
+        key_str = tuple(str(k) for k in key)
+        st.write(key_str)
+        if key_str in existing_data:
+            st.write("update")
+            update_query = f"UPDATE {table_name} SET "
+            update_query += ", ".join([f"{col} = ?" for col in df.columns if col not in key_columns])
+            update_query += f" WHERE {' AND '.join([f'{col} = ?' for col in key_columns])}"
+            st.write(update_query)
+            update_values = [row[col] for col in df.columns if col not in key_columns] + list(key)
+            st.write(update_values)
+            cursor.execute(update_query, update_values)
+        else:
+            st.write("insert")
+            insert_query = f"INSERT INTO {table_name} ({', '.join(df.columns)}) VALUES ({', '.join(['?' for _ in df.columns])})"
+            st.write(insert_query)
+            cursor.execute(insert_query, row.tolist())
+        
+        existing_data.add(key_str)
+        st.write(existing_data)
     conn.commit()
     conn.close()
 
