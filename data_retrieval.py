@@ -74,37 +74,30 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     cursor = conn.cursor()
     
     if update_type == "data_acquisizione":
-        filter_update = f"FROM_UNIXTIME(contact_custom_fields.value / 1000, '%Y-%m-%d')"
+        filter_update = f"FROM_UNIXTIME(ccf_data.value / 1000, '%Y-%m-%d')"
     elif update_type == "createdAt":
-        filter_update = f"DATE(opportunities.createdAt)"
+        filter_update = f"DATE(o.createdAt)"
     else:
-        filter_update = f"DATE(opportunities.lastStageChangeAt)"
+        filter_update = f"DATE(o.lastStageChangeAt)"
     
     query = f"""
                 SELECT
-                    opportunities.id AS id,
-                    opportunities.createdAt AS createdAt,
-                    opportunities.lastStageChangeAt AS lastStageChangeAt,
-                    contact_custom_fields.value AS data_acquisizione,
-                    COALESCE(additional_custom_field.value, 'Non specificato') AS fonte,
-                    opportunity_pipeline_stages.name AS pipeline_stage_name,
-                    opportunities.monetaryValue AS opportunity_monetary_value
+                    o.id AS id,
+                    o.createdAt AS createdAt,
+                    o.lastStageChangeAt AS lastStageChangeAt,
+                    ccf_data.value AS data_acquisizione,
+                    COALESCE(ccf_fonte.value, 'Non specificato') AS fonte,
+                    ops.name AS pipeline_stage_name,
+                    o.monetaryValue AS opportunity_monetary_value
                 FROM
-                    opportunities
-                    LEFT JOIN contacts ON opportunities.contactId = contacts.id
-                    LEFT JOIN contact_custom_fields AS additional_custom_field 
-                        ON contacts.id = additional_custom_field.contactId
-                        AND additional_custom_field.id = 'UiALy82OthZAitbSZTOU'
-                    LEFT JOIN opportunity_pipeline_stages 
-                        ON opportunities.pipelineStageId = opportunity_pipeline_stages.id
-                    LEFT JOIN contact_custom_fields 
-                        ON contacts.id = contact_custom_fields.contactId
-                    LEFT JOIN sub_account_custom_fields 
-                        ON contact_custom_fields.id = sub_account_custom_fields.id
+                    opportunities o
+                    INNER JOIN opportunity_pipeline_stages ops ON o.pipelineStageId = ops.id
+                    LEFT JOIN contacts c ON o.contactId = c.id
+                    LEFT JOIN contact_custom_fields ccf_data ON c.id = ccf_data.contactId AND ccf_data.id = 'ok7yK4uSS6wh0S2DnZrz'
+                    LEFT JOIN contact_custom_fields ccf_fonte ON c.id = ccf_fonte.contactId AND ccf_fonte.id = 'UiALy82OthZAitbSZTOU'
                 WHERE
-                    sub_account_custom_fields.locationId = '{st.secrets.id_cliente}'
-                    AND opportunity_pipeline_stages.pipelineId='{st.secrets.pipeline_vendita}'
-                    AND sub_account_custom_fields.id = 'ok7yK4uSS6wh0S2DnZrz'
+                    o.locationId = '{st.secrets.id_cliente}'
+                    AND ops.pipelineId = '{st.secrets.pipeline_vendita}'
                     AND {filter_update} BETWEEN '{start_date}' AND '{end_date}';
             """
     
@@ -128,3 +121,4 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
         st.success(f"Dati da attribuzione salvati correttamente")
     except Exception as e:
         st.error(f"Errore nel salvare i dati da attribuzione: {str(e)}")
+
