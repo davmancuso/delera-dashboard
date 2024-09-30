@@ -8,7 +8,7 @@ from config import STAGES, FIELDS
 from db import initialize_database
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
-from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving
+from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, order_retrieving
 from data_visualization import (
     meta_analysis, 
     gads_analysis, 
@@ -180,6 +180,11 @@ if database_update:
         attribution_retrieving(pool, update_type_attribution, comparison_start, end_date)
     except Exception as e:
         st.warning(f"Errore nel recupero dei dati da lead: {str(e)}")
+    
+    try:
+        order_retrieving(pool, start_date, end_date)
+    except Exception as e:
+        st.warning(f"Errore nel recupero dei dati da ordini: {str(e)}")
 
 if dashboard:
     # Data processing

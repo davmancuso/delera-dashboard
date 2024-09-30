@@ -4,7 +4,7 @@ from urllib.request import urlopen
 import pandas as pd
 import mysql.connector
 
-from db import save_to_database, save_to_database_debug
+from db import save_to_database
 
 def api_retrieving(data_source, fields, start_date, end_date):
     url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
@@ -122,3 +122,38 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     except Exception as e:
         st.error(f"Errore nel salvare i dati da attribuzione: {str(e)}")
 
+def order_retrieving(pool, start_date, end_date):
+    conn = pool.get_connection()
+    cursor = conn.cursor()
+    
+    query = f"""
+                SELECT
+                    po.contactId AS id,
+                    po.createdAt AS date,
+                    po.sourceName AS product_name,
+                    po.amount AS total,
+                    po.currency AS currency,
+                    po.status AS status,
+                    po.recurringProducts AS recurring
+                FROM
+                    payment_orders po
+                WHERE
+                    po.altId = '{st.secrets.id_cliente}'
+                    AND po.createdAt BETWEEN '{start_date}' AND '{end_date}';
+            """
+    
+    cursor.execute(query)
+
+    df_raw = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+
+    df_raw = pd.DataFrame(df_raw, columns=cursor.column_names)
+    df_raw['date'] = pd.to_datetime(df_raw['date']).dt.date
+
+    try:
+        save_to_database(df_raw, "payment_orders", is_api=False)
+        st.success(f"Dati da ordini salvati correttamente")
+    except Exception as e:
+        st.error(f"Errore nel salvare i dati da ordini: {str(e)}")
