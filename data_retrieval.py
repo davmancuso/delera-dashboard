@@ -101,7 +101,7 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
                     AND {filter_update} BETWEEN '{start_date}' AND '{end_date}';
             """
     
-    st.write(query)
+    cursor.execute(query)
 
     df_raw = cursor.fetchall()
     
@@ -128,18 +128,18 @@ def order_retrieving(pool, start_date, end_date):
     
     query = f"""
                 SELECT
-                    po.contactId AS id,
-                    po.createdAt AS date,
-                    po.sourceName AS product_name,
-                    po.amount AS total,
-                    po.currency AS currency,
-                    po.status AS status,
-                    po.recurringProducts AS recurring
+                    pay.contactId AS id,
+                    pay.createdAt AS date,
+                    pay.entitySourceName AS product_name,
+                    pay.entitySourceMeta AS product_meta,
+                    pay.amount AS total,
+                    pay.currency AS currency,
+                    pay.status AS status
                 FROM
-                    payment_orders po
+                    payment_transactions pay
                 WHERE
-                    po.altId = '{st.secrets.id_cliente}'
-                    AND po.createdAt BETWEEN '{start_date}' AND '{end_date}';
+                    pay.altId = '{st.secrets.id_cliente}'
+                    AND pay.createdAt BETWEEN '{start_date}' AND '{end_date}';
             """
     
     cursor.execute(query)
@@ -154,6 +154,6 @@ def order_retrieving(pool, start_date, end_date):
 
     try:
         save_to_database(df_raw, "payment_orders", is_api=False)
-        st.success(f"Dati da ordini salvati correttamente")
+        st.success(f"Dati da transazioni salvati correttamente")
     except Exception as e:
-        st.error(f"Errore nel salvare i dati da ordini: {str(e)}")
+        st.error(f"Errore nel salvare i dati da transazioni: {str(e)}")

@@ -24,7 +24,7 @@ def initialize_database():
                  (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, data_acquisizione TEXT, fonte TEXT, pipeline_stage_name TEXT, opportunity_monetary_value REAL)''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS payment_orders
-                 (id TEXT, date TEXT, product_name TEXT, total REAL, currency TEXT, status TEXT, recurring TEXT)''')
+                 (id TEXT, date TEXT, product_name TEXT, product_meta JSON, total REAL, currency TEXT, status TEXT)''')
 
     conn.commit()
     conn.close()
