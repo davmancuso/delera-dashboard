@@ -234,7 +234,7 @@ if dashboard:
 
     # Data visualization
     # ------------------------------
-    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp)
+    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
     performance_analysis(opp_results, opp_results_comp)
     transaction_analysis(transaction_results, transaction_results_comp)
     meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)

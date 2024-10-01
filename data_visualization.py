@@ -574,13 +574,7 @@ def performance_vendite_chart(results, results_comp):
         }
     ))
     st.plotly_chart(fig_vintiperday)
-
-def performance_bleed_out_lead(results, results_comp):
-    st.subheader("Bleed out dei lead")
-
-    opportunitàPerse_df = results['opportunità_perse']
-    st.dataframe(opportunitàPerse_df.style.hide(axis='index'))
-
+    
 def performance_analysis(results, results_comp):
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -594,14 +588,7 @@ def performance_analysis(results, results_comp):
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico delle vendite: {str(e)}")
     with col3:
-        st.markdown("""
-        <hr style="height:0px;border-width: 0px;;margin-top:35px;">
-        """, unsafe_allow_html=True)
-
-        try:
-            performance_bleed_out_lead(results, results_comp)
-        except Exception as e:
-            st.error(f"Si è verificato un errore durante l'elaborazione del grafico dei lead persi: {str(e)}")
+        pass
 
 # ------------------------------
 #         OPPORTUNITIES
@@ -693,7 +680,7 @@ def opp_analysis(results, results_comp):
 # ------------------------------
 #           ECONOMICS
 # ------------------------------
-def economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp):
+def economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
     spesa_tot = meta_results['spesa_totale'] + gads_results['spesa_totale']
     spesa_tot_comp = meta_results_comp['spesa_totale'] + gads_results_comp['spesa_totale']
     spesa_tot_delta = get_metric_delta(spesa_tot, spesa_tot_comp)
@@ -718,8 +705,8 @@ def economics_metrics(meta_results, meta_results_comp, gads_results, gads_result
     
     col1_4, col1_5 = st.columns(2)
     with col1_4:
-        incasso = opp_results['incasso'] + transaction_results['transazioni']
-        incasso_comp = opp_results_comp['incasso'] + transaction_results_comp['transazioni']
+        incasso = opp_results['incasso']
+        incasso_comp = opp_results_comp['incasso']
         incasso_delta = get_metric_delta(incasso, incasso_comp)
         display_metric("Fatturato", currency(incasso), incasso_delta)
     with col1_5:
@@ -772,13 +759,13 @@ def economics_fatturato_giornaliero_chart(results, results_comp):
 
     st.plotly_chart(fig_fatturato)
 
-def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp):
-    st.title("Performance economiche")
+def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
+    st.title("Performance - Aceleratore d'impresa")
 
     col1, col2 = st.columns(2)
     with col1:
         try:
-            economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp)
+            economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche economiche: {str(e)}")
     with col2:

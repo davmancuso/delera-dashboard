@@ -435,7 +435,7 @@ class TransactionAnalyzer(BaseAnalyzer):
             'prove_gratuite': df[df['total'] == 0].shape[0],
             'abbonamenti_mensili': df[(df['total'] > 0) & (df['total'] < 500)].shape[0],
             'abbonamenti_annuali': df[df['total'] > 500].shape[0],
-            'transazioni_giorno': self.transazioni_giorno(df, is_comparison)
+            'incasso_giorno': self.incasso_giorno(df, is_comparison)
         }
         
         return aggregate_results
@@ -452,20 +452,20 @@ class TransactionAnalyzer(BaseAnalyzer):
 
         return results, results_comp
     
-    def transazioni_giorno(self, df, is_comparison=False):
+    def incasso_giorno(self, df, is_comparison=False):
         start = self.comparison_start if is_comparison else self.start_date
         end = self.comparison_end if is_comparison else self.end_date
 
         date_range = pd.date_range(start=start, end=end)
-        transazioni_giorno = pd.DataFrame({'date': date_range})
+        incasso_giorno = pd.DataFrame({'date': date_range})
 
-        transazioni_counts = df['total'].groupby(df['date'].dt.date).sum().reset_index(name='count')
-        transazioni_counts.columns = ['date', 'count']
-        transazioni_counts['date'] = pd.to_datetime(transazioni_counts['date'])
+        incasso_counts = df['total'].groupby(df['date'].dt.date).sum().reset_index(name='count')
+        incasso_counts.columns = ['date', 'count']
+        incasso_counts['date'] = pd.to_datetime(incasso_counts['date'])
 
-        transazioni_giorno['date'] = pd.to_datetime(transazioni_giorno['date'])
+        incasso_giorno['date'] = pd.to_datetime(incasso_giorno['date'])
 
-        transazioni_giorno = transazioni_giorno.merge(transazioni_counts, on='date', how='left')
-        transazioni_giorno['count'] = transazioni_giorno['count'].fillna(0)
+        incasso_giorno = incasso_giorno.merge(incasso_counts, on='date', how='left')
+        incasso_giorno['count'] = incasso_giorno['count'].fillna(0)
 
-        return transazioni_giorno
+        return incasso_giorno
