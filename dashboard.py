@@ -6,7 +6,7 @@ import pandas as pd
 
 from config import STAGES, FIELDS
 from db import initialize_database
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, OrderAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
 from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, order_retrieving
 from data_visualization import (
@@ -223,6 +223,13 @@ if dashboard:
     except Exception as e:
         st.warning(f"Errore nell'elaborazione dei dati da attribuzione: {str(e)}")
         attribution_results, attribution_results_comp = {}, {}
+
+    try:
+        order_analyzer = OrderAnalyzer(start_date, end_date, comparison_start, comparison_end)
+        order_results, order_results_comp = order_analyzer.analyze()
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati da ordini: {str(e)}")
+        order_results, order_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------

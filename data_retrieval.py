@@ -101,7 +101,7 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
                     AND {filter_update} BETWEEN '{start_date}' AND '{end_date}';
             """
     
-    cursor.execute(query)
+    st.write(query)
 
     df_raw = cursor.fetchall()
     
@@ -112,7 +112,7 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     df_raw['createdAt'] = pd.to_datetime(df_raw['createdAt']).dt.date
     df_raw['lastStageChangeAt'] = pd.to_datetime(df_raw['lastStageChangeAt']).dt.date
     df_raw['lastStageChangeAt'] = df_raw['lastStageChangeAt'].fillna(df_raw['createdAt'])
-    df_raw['data_acquisizione'] = pd.to_datetime(df_raw['data_acquisizione'], unit='ms', errors='coerce')
+    df_raw['data_acquisizione'] = pd.to_datetime(pd.to_numeric(df_raw['data_acquisizione'], errors='coerce'), unit='ms', errors='coerce')
     df_raw['data_acquisizione'] = df_raw['data_acquisizione'].dt.strftime('%Y-%m-%d').fillna('N/A')
     df_raw['data_acquisizione'] = df_raw['data_acquisizione'].replace('NaT', 'N/A')
 

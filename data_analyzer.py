@@ -414,3 +414,34 @@ class AttributionAnalyzer(BaseAnalyzer):
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
 
         return results, results_comp
+
+class OrderAnalyzer(BaseAnalyzer):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end):
+        super().__init__(start_date, end_date, comparison_start, comparison_end)
+    
+    def clean_data(self, df, is_comparison=False):
+        df["date"] = pd.to_datetime(df["date"])
+
+        return df
+    
+    def aggregate_results(self, df, is_comparison=False):
+        aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
+            'totali': len(df),
+            'incasso': df['total'].sum()
+        }
+        
+        return aggregate_results
+
+    def analyze(self):
+        df_raw = get_data("payment_orders", self.start_date, self.end_date, custom_date_field="date")
+        df_raw_comp = get_data("payment_orders", self.comparison_start, self.comparison_end, custom_date_field="date")
+
+        df = self.clean_data(df_raw)
+        df_comp = self.clean_data(df_raw_comp)
+
+        results = self.aggregate_results(df)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
+
+        return results, results_comp
