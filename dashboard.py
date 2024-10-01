@@ -6,9 +6,9 @@ import pandas as pd
 
 from config import STAGES, FIELDS
 from db import initialize_database
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, OrderAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, TransactionAnalyzer
 from data_manipulation import currency, percentage, thousand_0, thousand_2, get_metric_delta
-from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, order_retrieving
+from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, transaction_retrieving
 from data_visualization import (
     meta_analysis, 
     gads_analysis, 
@@ -17,7 +17,8 @@ from data_visualization import (
     performance_analysis, 
     opp_analysis, 
     economics_analysis, 
-    attribution_analysis
+    attribution_analysis,
+    transaction_analysis
 )
 
 # ------------------------------
@@ -182,9 +183,9 @@ if database_update:
         st.warning(f"Errore nel recupero dei dati da lead: {str(e)}")
     
     try:
-        order_retrieving(pool, start_date, end_date)
+        transaction_retrieving(pool, start_date, end_date)
     except Exception as e:
-        st.warning(f"Errore nel recupero dei dati da ordini: {str(e)}")
+        st.warning(f"Errore nel recupero dei dati da transazioni: {str(e)}")
 
 if dashboard:
     # Data processing
@@ -225,16 +226,17 @@ if dashboard:
         attribution_results, attribution_results_comp = {}, {}
 
     try:
-        order_analyzer = OrderAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        order_results, order_results_comp = order_analyzer.analyze()
+        transaction_analyzer = TransactionAnalyzer(start_date, end_date, comparison_start, comparison_end)
+        transaction_results, transaction_results_comp = transaction_analyzer.analyze()
     except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati da ordini: {str(e)}")
-        order_results, order_results_comp = {}, {}
+        st.warning(f"Errore nell'elaborazione dei dati da transazioni: {str(e)}")
+        transaction_results, transaction_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------
-    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
+    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp)
     performance_analysis(opp_results, opp_results_comp)
+    transaction_analysis(transaction_results, transaction_results_comp)
     meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)
     gads_analysis(gads_results, gads_results_comp, attribution_results, attribution_results_comp)
     lead_analysis(opp_results, opp_results_comp)

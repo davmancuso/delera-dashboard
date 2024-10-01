@@ -693,7 +693,7 @@ def opp_analysis(results, results_comp):
 # ------------------------------
 #           ECONOMICS
 # ------------------------------
-def economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
+def economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp):
     spesa_tot = meta_results['spesa_totale'] + gads_results['spesa_totale']
     spesa_tot_comp = meta_results_comp['spesa_totale'] + gads_results_comp['spesa_totale']
     spesa_tot_delta = get_metric_delta(spesa_tot, spesa_tot_comp)
@@ -718,8 +718,8 @@ def economics_metrics(meta_results, meta_results_comp, gads_results, gads_result
     
     col1_4, col1_5 = st.columns(2)
     with col1_4:
-        incasso = opp_results['incasso']
-        incasso_comp = opp_results_comp['incasso']
+        incasso = opp_results['incasso'] + transaction_results['transazioni']
+        incasso_comp = opp_results_comp['incasso'] + transaction_results_comp['transazioni']
         incasso_delta = get_metric_delta(incasso, incasso_comp)
         display_metric("Fatturato", currency(incasso), incasso_delta)
     with col1_5:
@@ -772,13 +772,13 @@ def economics_fatturato_giornaliero_chart(results, results_comp):
 
     st.plotly_chart(fig_fatturato)
 
-def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp):
+def economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp):
     st.title("Performance economiche")
 
     col1, col2 = st.columns(2)
     with col1:
         try:
-            economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
+            economics_metrics(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, transaction_results, transaction_results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche economiche: {str(e)}")
     with col2:
@@ -860,3 +860,27 @@ def attribution_analysis(meta_results, meta_results_comp, gads_results, gads_res
             attribution_percentage_chart(opp_results, opp_results_comp, attribution_results, attribution_results_comp)
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico delle percentuali di attribuzione: {str(e)}")
+
+# ------------------------------
+#          ATTRIBUTION
+# ------------------------------
+def transaction_metrics(transaction_results, transaction_results_comp):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        display_metric("Prove gratuite", transaction_results["prove_gratuite"], get_metric_delta(transaction_results["prove_gratuite"], transaction_results_comp["prove_gratuite"]))
+    with col2:
+        display_metric("Abbonamenti mensili", transaction_results["abbonamenti_mensili"], get_metric_delta(transaction_results["abbonamenti_mensili"], transaction_results_comp["abbonamenti_mensili"]))
+    with col3:
+        display_metric("Abbonamenti annuali", transaction_results["abbonamenti_annuali"], get_metric_delta(transaction_results["abbonamenti_annuali"], transaction_results_comp["abbonamenti_annuali"]))
+
+def transaction_analysis(transaction_results, transaction_results_comp):
+    st.title("Analisi delle transazioni")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        try:
+            transaction_metrics(transaction_results, transaction_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche delle transazioni: {str(e)}")
+    with col2:
+        pass

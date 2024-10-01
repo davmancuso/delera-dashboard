@@ -23,7 +23,7 @@ def initialize_database():
     c.execute('''CREATE TABLE IF NOT EXISTS attribution_data
                  (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, data_acquisizione TEXT, fonte TEXT, pipeline_stage_name TEXT, opportunity_monetary_value REAL)''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS payment_orders
+    c.execute('''CREATE TABLE IF NOT EXISTS transaction_data
                  (id TEXT, date TEXT, product_name TEXT, product_meta JSON, total REAL, currency TEXT, status TEXT)''')
 
     conn.commit()

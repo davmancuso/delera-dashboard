@@ -122,7 +122,7 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
     except Exception as e:
         st.error(f"Errore nel salvare i dati da attribuzione: {str(e)}")
 
-def order_retrieving(pool, start_date, end_date):
+def transaction_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
     
@@ -153,7 +153,7 @@ def order_retrieving(pool, start_date, end_date):
     df_raw['date'] = pd.to_datetime(df_raw['date']).dt.date
 
     try:
-        save_to_database(df_raw, "payment_orders", is_api=False)
+        save_to_database(df_raw, "transaction_data", is_api=False)
         st.success(f"Dati da transazioni salvati correttamente")
     except Exception as e:
         st.error(f"Errore nel salvare i dati da transazioni: {str(e)}")

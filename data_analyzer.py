@@ -415,28 +415,34 @@ class AttributionAnalyzer(BaseAnalyzer):
 
         return results, results_comp
 
-class OrderAnalyzer(BaseAnalyzer):
+class TransactionAnalyzer(BaseAnalyzer):
     def __init__(self, start_date, end_date, comparison_start, comparison_end):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
     
     def clean_data(self, df, is_comparison=False):
         df["date"] = pd.to_datetime(df["date"])
 
-        return df
+        return df.loc[
+            (df["status"] == "succeeded")
+        ]
     
     def aggregate_results(self, df, is_comparison=False):
         aggregate_results = {
             'start_date': self.comparison_start if is_comparison else self.start_date,
             'end_date': self.comparison_end if is_comparison else self.end_date,
             'totali': len(df),
-            'incasso': df['total'].sum()
+            'transazioni': df['total'].sum(),
+            'prove_gratuite': df[df['total'] == 0].shape[0],
+            'abbonamenti_mensili': df[(df['total'] > 0) & (df['total'] < 500)].shape[0],
+            'abbonamenti_annuali': df[df['total'] > 500].shape[0],
+            'transazioni_giorno': self.transazioni_giorno(df, is_comparison)
         }
         
         return aggregate_results
 
     def analyze(self):
-        df_raw = get_data("payment_orders", self.start_date, self.end_date, custom_date_field="date")
-        df_raw_comp = get_data("payment_orders", self.comparison_start, self.comparison_end, custom_date_field="date")
+        df_raw = get_data("transaction_data", self.start_date, self.end_date, custom_date_field="date")
+        df_raw_comp = get_data("transaction_data", self.comparison_start, self.comparison_end, custom_date_field="date")
 
         df = self.clean_data(df_raw)
         df_comp = self.clean_data(df_raw_comp)
@@ -445,3 +451,21 @@ class OrderAnalyzer(BaseAnalyzer):
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
 
         return results, results_comp
+    
+    def transazioni_giorno(self, df, is_comparison=False):
+        start = self.comparison_start if is_comparison else self.start_date
+        end = self.comparison_end if is_comparison else self.end_date
+
+        date_range = pd.date_range(start=start, end=end)
+        transazioni_giorno = pd.DataFrame({'date': date_range})
+
+        transazioni_counts = df['total'].groupby(df['date'].dt.date).sum().reset_index(name='count')
+        transazioni_counts.columns = ['date', 'count']
+        transazioni_counts['date'] = pd.to_datetime(transazioni_counts['date'])
+
+        transazioni_giorno['date'] = pd.to_datetime(transazioni_giorno['date'])
+
+        transazioni_giorno = transazioni_giorno.merge(transazioni_counts, on='date', how='left')
+        transazioni_giorno['count'] = transazioni_giorno['count'].fillna(0)
+
+        return transazioni_giorno
