@@ -852,6 +852,8 @@ def attribution_analysis(meta_results, meta_results_comp, gads_results, gads_res
 #          ATTRIBUTION
 # ------------------------------
 def transaction_metrics(transaction_results, transaction_results_comp):
+    display_metric("Transazioni totali", currency(transaction_results["transazioni"]), get_metric_delta(transaction_results["transazioni"], transaction_results_comp["transazioni"]))
+    
     col1, col2, col3 = st.columns(3)
     with col1:
         display_metric("Prove gratuite", transaction_results["prove_gratuite"], get_metric_delta(transaction_results["prove_gratuite"], transaction_results_comp["prove_gratuite"]))
