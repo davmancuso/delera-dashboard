@@ -1,17 +1,12 @@
 import streamlit as st
+import numpy as np
+import time
 from datetime import datetime, timedelta
 
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, TransactionAnalyzer
+from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, AttributionAnalyzer
 from data_visualization import (
     meta_analysis, 
-    gads_analysis, 
-    ganalytics_analysis, 
-    lead_analysis, 
-    performance_analysis, 
-    opp_analysis, 
-    economics_analysis, 
-    attribution_analysis,
-    transaction_analysis
+    gads_analysis
 )
 
 # ------------------------------
@@ -24,7 +19,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Anteprima delle performance")
+st.subheader("Performance marketing")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -91,13 +86,6 @@ if dashboard:
     # Data processing
     # ------------------------------
     try:
-        meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        meta_results, meta_results_comp = meta_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati di Meta: {str(e)}")
-        meta_results, meta_results_comp = {}, {}
-
-    try:
         gads_analyzer = GadsAnalyzer(start_date, end_date, comparison_start, comparison_end)
         gads_results, gads_results_comp = gads_analyzer.analyze()
     except Exception as e:
@@ -105,41 +93,12 @@ if dashboard:
         gads_results, gads_results_comp = {}, {}
 
     try:
-        ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati di Google Analytics: {str(e)}")
-        ganalytics_results, ganalytics_results_comp = {}, {}
-
-    try:
-        opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_opp)
-        opp_results, opp_results_comp = opp_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati da opportunità: {str(e)}")
-        opp_results, opp_results_comp = {}, {}
-    
-    try:
         attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_attribution)
         attribution_results, attribution_results_comp = attribution_analyzer.analyze()
     except Exception as e:
         st.warning(f"Errore nell'elaborazione dei dati da attribuzione: {str(e)}")
         attribution_results, attribution_results_comp = {}, {}
 
-    try:
-        transaction_analyzer = TransactionAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        transaction_results, transaction_results_comp = transaction_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati da transazioni: {str(e)}")
-        transaction_results, transaction_results_comp = {}, {}
-
     # Data visualization
     # ------------------------------
-    economics_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp)
-    performance_analysis(opp_results, opp_results_comp)
-    transaction_analysis(transaction_results, transaction_results_comp)
-    lead_analysis(opp_results, opp_results_comp)
-    opp_analysis(opp_results, opp_results_comp)
-    attribution_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, attribution_results, attribution_results_comp)
-    ganalytics_analysis(ganalytics_results, ganalytics_results_comp)
-
-    # DA FARE: analisi dei flussi dei singoli funnel
+    gads_analysis(gads_results, gads_results_comp, attribution_results, attribution_results_comp)
