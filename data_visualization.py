@@ -400,7 +400,7 @@ def ganalytics_campaign_distribution(results):
     st.write(f'Valore di soglia: {campaign_session_soglia}%')
 
 def ganalytics_analysis(results, results_comp):
-    st.title("Analisi del traffico")
+    st.title("Analisi dell'engagement")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -414,7 +414,7 @@ def ganalytics_analysis(results, results_comp):
         except Exception as e:
             st.error(f"Si è verificato un errore durante l'elaborazione del grafico degli utenti attivi su Google Analytics: {str(e)}")
 
-    st.title("Analisi del traffico")
+    st.title("Analisi delle sessioni")
 
     col3, col4 = st.columns(2)
 

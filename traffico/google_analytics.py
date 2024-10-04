@@ -3,10 +3,9 @@ import numpy as np
 import time
 from datetime import datetime, timedelta
 
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, AttributionAnalyzer
+from data_analyzer import BaseAnalyzer, GanalyticsAnalyzer
 from data_visualization import (
-    meta_analysis, 
-    gads_analysis
+    ganalytics_analysis
 )
 
 # ------------------------------
@@ -19,7 +18,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Performance Google Ads")
+st.subheader("Analisi del traffico")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -44,7 +43,8 @@ with col3:
             "Aggiorna i dati in base alla data di creazione dell'opportunità",
             "Aggiorna i dati in base alla data di cambio stage dell'opportunità"
         ],
-        index=["Creazione", "Lavorazione"].index(st.session_state.get('opp_radio', 'Creazione'))
+        index=["Creazione", "Lavorazione"].index(st.session_state.get('opp_radio', 'Creazione')),
+        disabled=True
     )
 with col4:
     lead_radio = st.radio(
@@ -54,7 +54,8 @@ with col4:
             "Aggiorna i dati in base alla data di acquisizione del lead",
             "Aggiorna i dati in base alla data di lavorazione dell'opportunità correlata"
         ],
-        index=["Acquisizione", "Opportunità"].index(st.session_state.get('lead_radio', 'Acquisizione'))
+        index=["Acquisizione", "Opportunità"].index(st.session_state.get('lead_radio', 'Acquisizione')),
+        disabled=True
     )
 
 dashboard = st.button("Mostra dashboard")
@@ -86,19 +87,12 @@ if dashboard:
     # Data processing
     # ------------------------------
     try:
-        gads_analyzer = GadsAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        gads_results, gads_results_comp = gads_analyzer.analyze()
+        ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end)
+        ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze()
     except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati di Google Ads: {str(e)}")
-        gads_results, gads_results_comp = {}, {}
-
-    try:
-        attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_attribution)
-        attribution_results, attribution_results_comp = attribution_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati da attribuzione: {str(e)}")
-        attribution_results, attribution_results_comp = {}, {}
+        st.warning(f"Errore nell'elaborazione dei dati di Google Analytics: {str(e)}")
+        ganalytics_results, ganalytics_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------
-    gads_analysis(gads_results, gads_results_comp, attribution_results, attribution_results_comp)
+    ganalytics_analysis(ganalytics_results, ganalytics_results_comp)

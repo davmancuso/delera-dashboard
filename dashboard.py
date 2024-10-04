@@ -105,13 +105,6 @@ if dashboard:
         gads_results, gads_results_comp = {}, {}
 
     try:
-        ganalytics_analyzer = GanalyticsAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        ganalytics_results, ganalytics_results_comp = ganalytics_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati di Google Analytics: {str(e)}")
-        ganalytics_results, ganalytics_results_comp = {}, {}
-
-    try:
         opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_opp)
         opp_results, opp_results_comp = opp_analyzer.analyze()
     except Exception as e:
@@ -140,6 +133,3 @@ if dashboard:
     lead_analysis(opp_results, opp_results_comp)
     opp_analysis(opp_results, opp_results_comp)
     attribution_analysis(meta_results, meta_results_comp, gads_results, gads_results_comp, opp_results, opp_results_comp, attribution_results, attribution_results_comp)
-    ganalytics_analysis(ganalytics_results, ganalytics_results_comp)
-
-    # DA FARE: analisi dei flussi dei singoli funnel

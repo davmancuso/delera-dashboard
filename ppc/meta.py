@@ -19,7 +19,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Performance marketing")
+st.subheader("Performance Meta Ads")
 
 col1, col2 = st.columns(2)
 with col1:

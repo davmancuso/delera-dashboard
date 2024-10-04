@@ -17,11 +17,13 @@ st.set_page_config(
 homepage = st.Page("dashboard.py", title="Dashboard", icon=":material/home:")
 ppc_meta = st.Page("ppc/meta.py", title="Meta Ads", icon=":material/rocket_launch:")
 ppc_google_ads = st.Page("ppc/google_ads.py", title="Google Ads", icon=":material/rocket_launch:")
+google_analytics = st.Page("traffico/google_analytics.py", title="Google Analytics", icon=":material/query_stats:")
 settings_page = st.Page("settings/impostazioni.py", title="Impostazioni", icon=":material/settings:")
 
 pg = st.navigation({
     "Dashboard": [homepage],
     "Performance marketing": [ppc_meta, ppc_google_ads],
+    "Traffico": [google_analytics],
     "Impostazioni": [settings_page]
     })
 
@@ -31,10 +33,10 @@ pg.run()
 #         SESSION STATE
 # ------------------------------
 if 'start_date' not in st.session_state:
-    st.session_state['start_date'] = (datetime.now() - timedelta(days=14)).strftime('%d/%m/%Y')
+    st.session_state['start_date'] = datetime.now() - timedelta(days=14)
 
 if 'end_date' not in st.session_state:
-    st.session_state['end_date'] = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+    st.session_state['end_date'] = datetime.now() - timedelta(days=1)
 
 if 'opp_radio' not in st.session_state:
     st.session_state['opp_radio'] = 'Creazione'
@@ -45,18 +47,11 @@ if 'lead_radio' not in st.session_state:
 # ------------------------------
 #             STYLE
 # ------------------------------
-st.markdown("""
-    <style type='text/css'>
-
-    /* Remove sidebar X button */
-    [data-testid="stSidebar"] div div button {
-        display: none;
-    }
-
+st.markdown("""<style type='text/css'>
     /* Remove footer */
     footer {
         display: none !important;
-    }    
+    }
     
     /* Metric boxes */
     [data-testid="stMetric"] {
@@ -77,6 +72,4 @@ st.markdown("""
         width: fit-content;
         margin: auto;
     }
-
-    </style>
-""", unsafe_allow_html=True)
+    </style>""", unsafe_allow_html=True)
