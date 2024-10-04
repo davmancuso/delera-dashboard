@@ -15,10 +15,10 @@ st.set_page_config(
 #           MULTIPAGE
 # ------------------------------
 homepage = st.Page("dashboard.py", title="Dashboard", icon=":material/home:")
-ppc_meta = st.Page("ppc/meta.py", title="Meta Ads", icon=":material/rocket_launch:")
-ppc_google_ads = st.Page("ppc/google_ads.py", title="Google Ads", icon=":material/rocket_launch:")
-google_analytics = st.Page("traffico/google_analytics.py", title="Google Analytics", icon=":material/query_stats:")
-settings_page = st.Page("settings/impostazioni.py", title="Impostazioni", icon=":material/settings:")
+ppc_meta = st.Page("mp_ppc/meta.py", title="Meta Ads", icon=":material/rocket_launch:")
+ppc_google_ads = st.Page("mp_ppc/google_ads.py", title="Google Ads", icon=":material/rocket_launch:")
+google_analytics = st.Page("mp_traffico/google_analytics.py", title="Google Analytics", icon=":material/query_stats:")
+settings_page = st.Page("mp_settings/impostazioni.py", title="Impostazioni", icon=":material/settings:")
 
 pg = st.navigation({
     "Dashboard": [homepage],
