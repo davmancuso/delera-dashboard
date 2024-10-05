@@ -104,10 +104,12 @@ def meta_attribution_metrics(results, results_comp, attribution_results, attribu
         display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
 
 def meta_campaign_details(dettaglioCampagne):
+    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
+
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
     dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
-    st.dataframe(dettaglioCampagne)
+    st.dataframe(dettaglioCampagne, use_container_width=True)
 
 def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Meta")
@@ -243,20 +245,20 @@ def gads_attribution_metrics(results, results_comp, attribution_results, attribu
         display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
 
 def gads_campaign_details(dettaglioCampagne):
-    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False)
+    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
 
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
     dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
-    st.dataframe(dettaglioCampagne)
+    st.dataframe(dettaglioCampagne, use_container_width=True)
 
 def gads_keyword_details(dettaglioKeyword):
-    dettaglioKeyword = dettaglioKeyword.sort_values(by='Spesa', ascending=False)
+    dettaglioKeyword = dettaglioKeyword.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
 
     dettaglioKeyword['Spesa'] = dettaglioKeyword['Spesa'].apply(currency)
     dettaglioKeyword['CTR'] = dettaglioKeyword['CTR'].apply(percentage)
     dettaglioKeyword['CPC'] = dettaglioKeyword['CPC'].apply(currency)
-    st.dataframe(dettaglioKeyword)
+    st.dataframe(dettaglioKeyword, use_container_width=True)
 
 def gads_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Google")
@@ -873,3 +875,32 @@ def transaction_analysis(transaction_results, transaction_results_comp):
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche delle transazioni: {str(e)}")
     with col2:
         pass
+
+# ------------------------------
+#          VENDITORI
+# ------------------------------
+def leader_board_venditori(opp_results, opp_results_comp):
+    col1, col2 = st.columns(2)
+    with col1:
+        maggior_fatturato = opp_results['vendite_venditore'].loc[opp_results['vendite_venditore']['Fatturato totale'].idxmax()]
+        display_metric("Maggior fatturato", f"{maggior_fatturato['Venditore']} ({currency(maggior_fatturato['Fatturato totale'])})", 1)
+    with col2:
+        maggiori_vendite = opp_results['vendite_venditore'].loc[opp_results['vendite_venditore']['Vendite'].idxmax()]
+        display_metric("Maggior numero di vendite", f"{maggiori_vendite['Venditore']} ({maggiori_vendite['Vendite']} vendite)", 1)
+    
+    col3, col4 = st.columns(2)
+    with col3:
+        maggior_vendita_media = opp_results['vendite_venditore'].loc[opp_results['vendite_venditore']['Fatturato medio'].idxmax()]
+        display_metric("Maggior vendita media", f"{maggior_vendita_media['Venditore']} ({currency(maggior_vendita_media['Fatturato medio'])})", 1)
+    with col4:
+        display_metric("Maggior tasso di conversione", "-", 1)
+
+    st.subheader("Performance venditori")
+    opp_results['vendite_venditore']['Fatturato totale'] = opp_results['vendite_venditore']['Fatturato totale'].apply(currency)
+    opp_results['vendite_venditore']['Fatturato medio'] = opp_results['vendite_venditore']['Fatturato medio'].apply(currency)
+    st.dataframe(opp_results['vendite_venditore'], use_container_width=True)
+
+def venditori_analysis(opp_results, opp_results_comp):
+    st.title("Analisi dei venditori")
+
+    leader_board_venditori(opp_results, opp_results_comp)

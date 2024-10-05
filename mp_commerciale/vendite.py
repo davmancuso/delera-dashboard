@@ -3,9 +3,6 @@ from datetime import datetime, timedelta
 
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, TransactionAnalyzer
 from data_visualization import (
-    meta_analysis, 
-    gads_analysis, 
-    ganalytics_analysis, 
     lead_analysis, 
     performance_analysis, 
     opp_analysis, 
@@ -24,7 +21,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Anteprima delle performance")
+st.subheader("Analisi delle vendite")
 
 col1, col2 = st.columns(2)
 with col1:

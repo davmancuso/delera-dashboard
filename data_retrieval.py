@@ -39,17 +39,17 @@ def opp_retrieving(pool, update_type, start_date, end_date):
                     o.createdAt,
                     o.lastStageChangeAt,
                     o.monetaryValue,
+                    u.name AS venditore,
                     ops.name AS stage
                 FROM
                     opportunities o
                 JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
+                JOIN users u ON o.assignedTo = u.id
                 WHERE
                     o.locationId='{st.secrets.id_cliente}'
                     AND ops.pipelineId='{st.secrets.pipeline_vendita}'
                     AND o.{update_type} >= '{start_date}T00:00:00.000Z'
-                    AND o.{update_type} <= '{end_date}T23:59:59.999Z'
-                ORDER BY
-                    o.{update_type};
+                    AND o.{update_type} <= '{end_date}T23:59:59.999Z';
             """
     
     cursor.execute(query)

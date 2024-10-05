@@ -62,3 +62,8 @@ FIELDS = {
     'gads': "datasource,source,account_id,account_name,date,campaign,spend,impressions,clicks,keyword_text",
     'ganalytics': "datasource,source,account_id,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
 }
+
+COMMERCIALI = {
+    'setters': ['Jacqueline Sanchez', 'Valeria  Di Giacomo', 'Valentina Ferrari'],
+    'venditori': ['Paolo Mancusi', 'Fabio Tavella']
+}

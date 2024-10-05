@@ -18,7 +18,7 @@ def initialize_database():
                  (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, sessions INTEGER, engaged_sessions INTEGER, active_users INTEGER, page_path TEXT, user_engagement_duration REAL)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS opp_data
-                 (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, monetaryValue REAL, stage TEXT)''')
+                 (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, monetaryValue REAL, venditore TEXT, stage TEXT)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS attribution_data
                  (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, data_acquisizione TEXT, fonte TEXT, pipeline_stage_name TEXT, opportunity_monetary_value REAL)''')

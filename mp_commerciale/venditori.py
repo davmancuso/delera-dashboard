@@ -3,15 +3,7 @@ from datetime import datetime, timedelta
 
 from data_analyzer import BaseAnalyzer, MetaAnalyzer, GadsAnalyzer, GanalyticsAnalyzer, OppAnalyzer, AttributionAnalyzer, TransactionAnalyzer
 from data_visualization import (
-    meta_analysis, 
-    gads_analysis, 
-    ganalytics_analysis, 
-    lead_analysis, 
-    performance_analysis, 
-    opp_analysis, 
-    economics_analysis, 
-    attribution_analysis,
-    transaction_analysis
+    venditori_analysis
 )
 
 # ------------------------------
@@ -24,7 +16,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Anteprima delle performance")
+st.subheader("Analisi dei venditori")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -59,11 +51,11 @@ with col4:
             "Aggiorna i dati in base alla data di acquisizione del lead",
             "Aggiorna i dati in base alla data di lavorazione dell'opportunità correlata"
         ],
-        index=["Acquisizione", "Opportunità"].index(st.session_state.get('lead_radio', 'Acquisizione'))
+        index=["Acquisizione", "Opportunità"].index(st.session_state.get('lead_radio', 'Acquisizione')),
+        disabled=True
     )
 
-dashboard = st.button("Mostra dashboard", disabled=True)
-st.warning("Report in costruzione")
+dashboard = st.button("Mostra dashboard")
 
 # Variabili d'ambiente
 # ------------------------------
@@ -91,8 +83,13 @@ if dashboard:
 
     # Data processing
     # ------------------------------
-    
+    try:
+        opp_analyzer = OppAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_opp)
+        opp_results, opp_results_comp = opp_analyzer.analyze()
+    except Exception as e:
+        st.warning(f"Errore nell'elaborazione dei dati da opportunità: {str(e)}")
+        opp_results, opp_results_comp = {}, {}
 
     # Data visualization
     # ------------------------------
-    
+    venditori_analysis(opp_results, opp_results_comp)

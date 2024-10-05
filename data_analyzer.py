@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import datetime
 
-from config import STAGES
+from config import STAGES, COMMERCIALI
 from db import get_data
 
 class BaseAnalyzer:
@@ -252,7 +252,9 @@ class OppAnalyzer(BaseAnalyzer):
             'vinti_giorno': self.vinti_giorno(df, is_comparison),
             'opp_per_giorno': self.opp_per_giorno(df, is_comparison),
             'incasso': df[df['stage'].isin(STAGES['vinti'])]['monetaryValue'].sum(),
-            'incasso_giorno': self.incasso_giorno(df, is_comparison)
+            'incasso_giorno': self.incasso_giorno(df, is_comparison),
+            'venditori': df['venditore'].unique().tolist(),
+            'vendite_venditore': self.get_vendite_per_venditore(df)
         }
 
         num_days = (aggregate_results['end_date'] - aggregate_results['start_date']).days
@@ -355,6 +357,26 @@ class OppAnalyzer(BaseAnalyzer):
         incasso_giorno['count'] = incasso_giorno['count'].fillna(0)
 
         return incasso_giorno
+
+    def get_vendite_per_venditore(self, df):
+        venditori = COMMERCIALI['venditori']
+        vendite_venditore = pd.DataFrame(columns=['Venditore', 'Vendite', 'Fatturato totale', 'Fatturato medio'])
+
+        for venditore in venditori:
+            vendite = df[(df['stage'].isin(STAGES['vinti'])) & (df['venditore'] == venditore)]
+            num_vendite = vendite.shape[0]
+            valore_totale = vendite['monetaryValue'].sum()
+
+            vendite_venditore = pd.concat([vendite_venditore, pd.DataFrame({
+                'Venditore': [venditore],
+                'Vendite': [num_vendite],
+                'Fatturato totale': [valore_totale],
+                'Fatturato medio': [valore_totale / num_vendite if num_vendite > 0 else 0]
+            })], ignore_index=True)
+
+        vendite_venditore = vendite_venditore.sort_values(by='Fatturato totale', ascending=False)
+
+        return vendite_venditore
 
 class AttributionAnalyzer(BaseAnalyzer):
     def __init__(self, start_date, end_date, comparison_start, comparison_end, update_type):
