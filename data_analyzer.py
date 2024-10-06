@@ -57,18 +57,26 @@ class MetaAnalyzer(BaseAnalyzer):
         dettaglioCampagne = df.groupby('campaign').agg({
             'spend': 'sum',
             'impressions': 'sum',
-            'outbound_clicks_outbound_click': 'sum'
+            'outbound_clicks_outbound_click': 'sum',
+            'actions_lead': 'sum',
+            'actions_omni_purchase': 'sum'
         }).reset_index()
 
         dettaglioCampagne.rename(columns={
             'campaign': 'Campagna',
             'spend': 'Spesa',
             'impressions': 'Impression',
-            'outbound_clicks_outbound_click': 'Click'
+            'outbound_clicks_outbound_click': 'Click',
+            'actions_lead': 'Lead',
+            'actions_omni_purchase': 'Vendite'
         }, inplace=True)
 
         dettaglioCampagne['CTR'] = (dettaglioCampagne['Click'] / dettaglioCampagne['Impression'] * 100).fillna(0)
         dettaglioCampagne['CPC'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']).fillna(0)
+        dettaglioCampagne['CPL'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Lead']).fillna(0)
+        dettaglioCampagne['CPA'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Vendite']).fillna(0)
+        
+        dettaglioCampagne = dettaglioCampagne[['Campagna', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
 
         return dettaglioCampagne
 
@@ -386,10 +394,11 @@ class AttributionAnalyzer(BaseAnalyzer):
     def clean_data(self, df, is_comparison=False):
         df["createdAt"] = pd.to_datetime(df["createdAt"])
         df["lastStageChangeAt"] = pd.to_datetime(df["lastStageChangeAt"])
-        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"])
+        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"], errors='coerce')
+        df["data_acquisizione"] = df["data_acquisizione"].fillna(pd.NaT)
         df["createdAt"] = df["createdAt"].dt.strftime('%d-%m-%Y')
         df["lastStageChangeAt"] = df["lastStageChangeAt"].dt.strftime('%d-%m-%Y')
-        df["data_acquisizione"] = df["data_acquisizione"].dt.strftime('%d-%m-%Y')
+        df["data_acquisizione"] = pd.to_datetime(df["data_acquisizione"]).dt.strftime('%d-%m-%Y')
 
         df = df.loc[
             (df['pipeline_stage_name'].isin(STAGES['stages'])) &
@@ -428,7 +437,7 @@ class AttributionAnalyzer(BaseAnalyzer):
     def analyze(self):
         df_raw = get_data("attribution_data", self.start_date, self.end_date, custom_date_field=self.update_type)
         df_raw_comp = get_data("attribution_data", self.comparison_start, self.comparison_end, custom_date_field=self.update_type)
-
+        
         df = self.clean_data(df_raw)
         df_comp = self.clean_data(df_raw_comp)
 

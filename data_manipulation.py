@@ -3,10 +3,13 @@ import pandas as pd
 import streamlit as st
 
 def currency(value):
-    integer_part, decimal_part = f"{value:,.2f}".split(".")
-    integer_part = integer_part.replace(",", ".")
-    formatted_value = f"€ {integer_part},{decimal_part}"
-    return formatted_value
+    try:
+        integer_part, decimal_part = f"{value:,.2f}".split(".")
+        integer_part = integer_part.replace(",", ".")
+        formatted_value = f"€ {integer_part},{decimal_part}"
+        return formatted_value
+    except Exception as e:
+        return "-"
 
 def percentage(value):
     integer_part, decimal_part = f"{value:,.2f}".split(".")

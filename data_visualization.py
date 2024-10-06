@@ -105,10 +105,13 @@ def meta_attribution_metrics(results, results_comp, attribution_results, attribu
 
 def meta_campaign_details(dettaglioCampagne):
     dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
-
+    
     dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
     dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
     dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
+    dettaglioCampagne['CPL'] = dettaglioCampagne['CPL'].apply(currency)
+    dettaglioCampagne['CPA'] = dettaglioCampagne['CPA'].apply(currency)
+    
     st.dataframe(dettaglioCampagne, use_container_width=True)
 
 def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):

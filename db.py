@@ -9,7 +9,7 @@ def initialize_database():
     c = conn.cursor()
     
     c.execute('''CREATE TABLE IF NOT EXISTS facebook_data
-                 (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, spend REAL, impressions INTEGER, outbound_clicks_outbound_click INTEGER)''')
+                 (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, spend REAL, impressions INTEGER, outbound_clicks_outbound_click INTEGER, actions_lead INTEGER, actions_omni_purchase INTEGER)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS google_ads_data
                  (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, spend REAL, impressions INTEGER, clicks INTEGER, keyword_text TEXT)''')
