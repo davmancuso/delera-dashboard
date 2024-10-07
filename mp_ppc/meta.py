@@ -57,10 +57,12 @@ with col4:
         index=["Acquisizione", "Opportunità"].index(st.session_state.get('lead_radio', 'Acquisizione'))
     )
 
-dashboard = st.button("Mostra dashboard")
-
 # Variabili d'ambiente
 # ------------------------------
+period = end_date - start_date + timedelta(days=1)
+comparison_start = start_date - period
+comparison_end = start_date -  timedelta(days=1)
+
 if opp_radio == "Creazione":
     update_type_opp = "createdAt"
 else:
@@ -71,34 +73,29 @@ if lead_radio == "Acquisizione":
 else:
     update_type_attribution = update_type_opp
 
-period = end_date - start_date + timedelta(days=1)
-comparison_start = start_date - period
-comparison_end = start_date -  timedelta(days=1)
+# Session state update
+# ------------------------------
+st.session_state['start_date'] = start_date
+st.session_state['end_date'] = end_date
+st.session_state['opp_radio'] = opp_radio
+st.session_state['lead_radio'] = lead_radio
 
-if dashboard:
-    # Session state update
-    # ------------------------------
-    st.session_state['start_date'] = start_date
-    st.session_state['end_date'] = end_date
-    st.session_state['opp_radio'] = opp_radio
-    st.session_state['lead_radio'] = lead_radio
+# Data processing
+# ------------------------------
+try:
+    meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end)
+    meta_results, meta_results_comp = meta_analyzer.analyze()
+except Exception as e:
+    st.warning(f"Errore nell'elaborazione dei dati di Meta: {str(e)}")
+    meta_results, meta_results_comp = {}, {}
 
-    # Data processing
-    # ------------------------------
-    try:
-        meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end)
-        meta_results, meta_results_comp = meta_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati di Meta: {str(e)}")
-        meta_results, meta_results_comp = {}, {}
+try:
+    attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_attribution)
+    attribution_results, attribution_results_comp = attribution_analyzer.analyze()
+except Exception as e:
+    st.warning(f"Errore nell'elaborazione dei dati da attribuzione: {str(e)}")
+    attribution_results, attribution_results_comp = {}, {}
 
-    try:
-        attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_attribution)
-        attribution_results, attribution_results_comp = attribution_analyzer.analyze()
-    except Exception as e:
-        st.warning(f"Errore nell'elaborazione dei dati da attribuzione: {str(e)}")
-        attribution_results, attribution_results_comp = {}, {}
-
-    # Data visualization
-    # ------------------------------
-    meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)
+# Data visualization
+# ------------------------------
+meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)

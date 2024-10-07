@@ -114,6 +114,104 @@ def meta_campaign_details(dettaglioCampagne):
     
     st.dataframe(dettaglioCampagne, use_container_width=True)
 
+def meta_ad_details(dettaglioAd):
+    if dettaglioAd is None:
+        st.error("Dati dettaglio ad non disponibili.")
+        return
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        campaigns = dettaglioAd['Campagna'].unique().tolist()
+        campaign_filter = st.multiselect(
+            "Seleziona le campagne",
+            options=campaigns,
+            default=[],
+            key='campaign_filter',
+            placeholder='Seleziona le campagne'
+        )
+
+        campaigns_selected = len(campaign_filter) > 0
+        if campaigns_selected:
+            filtered_adsets = dettaglioAd[dettaglioAd['Campagna'].isin(campaign_filter)]['Adset'].unique().tolist()
+            
+            with col2:
+                adset_filter = st.multiselect(
+                    "Seleziona gli adset",
+                    options=filtered_adsets,
+                    default=[],
+                    key='adset_filter',
+                    placeholder='Seleziona gli adset'
+                )
+            
+            adsets_selected = len(adset_filter) > 0
+            if adsets_selected:
+                filtered_ad_names = dettaglioAd[dettaglioAd['Adset'].isin(adset_filter)]['Ad'].unique().tolist()
+                with col3:
+                    ad_name_filter = st.multiselect(
+                        "Seleziona gli annunci",
+                        options=filtered_ad_names,
+                        default=[],  # Nessuna selezione di default
+                        key='ad_name_filter'
+                    )
+            else:
+                filtered_ad_names = dettaglioAd[dettaglioAd['Campagna'].isin(campaign_filter)]['Ad'].unique().tolist()
+                with col3:
+                    ad_name_filter = st.multiselect(
+                        "Seleziona gli annunci",
+                        options=filtered_ad_names,
+                        default=[],
+                        key='ad_name_filter',
+                        placeholder='Seleziona gli annunci'
+                    )
+        else:
+            avec_col2 = col2.empty()
+            avec_col3 = col3.empty()
+            
+            adset_filter = []
+            ad_name_filter = []
+
+    filtra_dettaglioAd = dettaglioAd.copy()
+    
+    if campaigns_selected:
+        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Campagna'].isin(campaign_filter)]
+    
+    if 'adset_filter' in locals() and len(adset_filter) > 0:
+        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Adset'].isin(adset_filter)]
+    
+    if 'ad_name_filter' in locals() and len(ad_name_filter) > 0:
+        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Ad'].isin(ad_name_filter)]
+    
+    filtra_dettaglioAd = filtra_dettaglioAd.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
+    
+    filtra_dettaglioAd['Spesa'] = filtra_dettaglioAd['Spesa'].apply(currency)
+    filtra_dettaglioAd['CTR'] = filtra_dettaglioAd['CTR'].apply(percentage)
+    filtra_dettaglioAd['CPC'] = filtra_dettaglioAd['CPC'].apply(currency)
+    filtra_dettaglioAd['CPL'] = filtra_dettaglioAd['CPL'].apply(currency)
+    filtra_dettaglioAd['CPA'] = filtra_dettaglioAd['CPA'].apply(currency)
+    
+    if filtra_dettaglioAd.empty:
+        st.warning("Nessun record trovato per i filtri selezionati.")
+    else:
+        col1, col2, col3 = st.columns(3)
+        for index, row in filtra_dettaglioAd.iterrows():
+            with col1 if index % 3 == 0 else col2 if index % 3 == 1 else col3:
+                with st.container():
+                    st.markdown(
+                        f"""
+                        <div style="border: 3px solid {
+                            '#008000' if row['Stato'] == 'ACTIVE' else
+                            '#ffd32c' if row['Stato'] == 'PAUSED' else
+                            '#cd1c18'
+                        }; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                            {'<h5>Titolo dinamico</h5>' if row['Titolo'] is None else f'<h5>{row['Titolo']}</h5>'}
+                            {'<p>Testo dinamico</p>' if row['Testo'] is None else f'<p>{row['Testo']}</p>'}
+                            {'<p>Immagine dinamica</p>' if row['Immagine'] is None else f'<img src="{row["Immagine"]}" style="max-width:100%;">'}
+                            {'<p>Link non raggiungibile</p>' if row['Link'] is None else f'<a href="{row["Link"]}" target="_blank">Link</a>'}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
 def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Meta")
 
@@ -146,6 +244,13 @@ def meta_analysis(results, results_comp, attribution_results, attribution_result
         meta_campaign_details(results['dettaglio_campagne'].copy())
     except Exception as e:
         st.error(f"Si è verificato un errore durante l'elaborazione delle campagne su Meta: {str(e)}")
+
+    st.title("Dettaglio degli annunci")
+
+    try:
+        meta_ad_details(results['dettaglio_ad'].copy())
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione degli annunci su Meta: {str(e)}")
 
 # ------------------------------
 #           GOOGLE ADS

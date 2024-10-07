@@ -9,22 +9,76 @@ def initialize_database():
     c = conn.cursor()
     
     c.execute('''CREATE TABLE IF NOT EXISTS facebook_data
-                 (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, spend REAL, impressions INTEGER, outbound_clicks_outbound_click INTEGER, actions_lead INTEGER, actions_omni_purchase INTEGER)''')
+                (datasource TEXT, 
+                source TEXT, 
+                account_id TEXT, 
+                account_name TEXT, 
+                date TEXT, 
+                campaign TEXT, 
+                adset_name TEXT,
+                adset_status TEXT,
+                ad_name TEXT,
+                status TEXT,
+                body TEXT,
+                title TEXT,
+                link TEXT,
+                image_url TEXT,
+                spend REAL, 
+                impressions INTEGER, 
+                outbound_clicks_outbound_click INTEGER, 
+                actions_lead INTEGER, 
+                actions_omni_purchase INTEGER)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS google_ads_data
-                 (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, spend REAL, impressions INTEGER, clicks INTEGER, keyword_text TEXT)''')
+                (datasource TEXT, 
+                source TEXT, 
+                account_id TEXT, 
+                account_name TEXT, 
+                date TEXT, 
+                campaign TEXT, 
+                spend REAL, 
+                impressions INTEGER, 
+                clicks INTEGER, 
+                keyword_text TEXT)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS googleanalytics4_data
-                 (datasource TEXT, source TEXT, account_id TEXT, account_name TEXT, date TEXT, campaign TEXT, sessions INTEGER, engaged_sessions INTEGER, active_users INTEGER, page_path TEXT, user_engagement_duration REAL)''')
+                (datasource TEXT, 
+                source TEXT, 
+                account_id TEXT, 
+                account_name TEXT, 
+                date TEXT, 
+                campaign TEXT, 
+                sessions INTEGER, 
+                engaged_sessions INTEGER, 
+                active_users INTEGER, 
+                page_path TEXT, 
+                user_engagement_duration REAL)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS opp_data
-                 (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, monetaryValue REAL, venditore TEXT, stage TEXT)''')
+                (id TEXT, 
+                createdAt TEXT, 
+                lastStageChangeAt TEXT, 
+                monetaryValue REAL, 
+                venditore TEXT, 
+                stage TEXT)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS attribution_data
-                 (id TEXT, createdAt TEXT, lastStageChangeAt TEXT, data_acquisizione TEXT, fonte TEXT, pipeline_stage_name TEXT, opportunity_monetary_value REAL)''')
+                (id TEXT, 
+                createdAt TEXT, 
+                lastStageChangeAt TEXT, 
+                data_acquisizione TEXT, 
+                fonte TEXT, 
+                pipeline_stage_name TEXT, 
+                opportunity_monetary_value REAL)''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS transaction_data
-                 (id TEXT, date TEXT, product_name TEXT, product_meta JSON, total REAL, currency TEXT, status TEXT)''')
+                (id TEXT, 
+                date TEXT, 
+                product_name TEXT, 
+                product_meta JSON, 
+                total REAL, 
+                currency TEXT, 
+                status TEXT)''')
 
     conn.commit()
     conn.close()

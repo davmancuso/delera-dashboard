@@ -32,7 +32,8 @@ class MetaAnalyzer(BaseAnalyzer):
             'click': df["outbound_clicks_outbound_click"].sum(),
             'campagne_attive': df["campaign"].nunique(),
             'spesa_giornaliera': df.groupby('date')['spend'].sum().reset_index(),
-            'dettaglio_campagne': self.get_campaign_details(df)
+            'dettaglio_campagne': self.get_campaign_details(df),
+            'dettaglio_ad': self.get_ad_details(df)
         }
 
         for r in [aggregate_results]:
@@ -54,7 +55,9 @@ class MetaAnalyzer(BaseAnalyzer):
         return results, results_comp
     
     def get_campaign_details(self, df):
-        dettaglioCampagne = df.groupby('campaign').agg({
+        dettaglioCampagne = df.groupby('adset_name').agg({
+            'campaign': lambda x: x.iloc[0],
+            'adset_status': lambda x: x.iloc[0],
             'spend': 'sum',
             'impressions': 'sum',
             'outbound_clicks_outbound_click': 'sum',
@@ -63,7 +66,9 @@ class MetaAnalyzer(BaseAnalyzer):
         }).reset_index()
 
         dettaglioCampagne.rename(columns={
+            'adset_name': 'Adset',
             'campaign': 'Campagna',
+            'adset_status': 'Stato',
             'spend': 'Spesa',
             'impressions': 'Impression',
             'outbound_clicks_outbound_click': 'Click',
@@ -76,9 +81,50 @@ class MetaAnalyzer(BaseAnalyzer):
         dettaglioCampagne['CPL'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Lead']).fillna(0)
         dettaglioCampagne['CPA'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Vendite']).fillna(0)
         
-        dettaglioCampagne = dettaglioCampagne[['Campagna', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
+        dettaglioCampagne = dettaglioCampagne[['Campagna', 'Adset', 'Stato', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
 
         return dettaglioCampagne
+    
+    def get_ad_details(self, df):
+        dettaglioAd = df.groupby('ad_name').agg({
+            'campaign': lambda x: x.iloc[0],
+            'adset_name': lambda x: x.iloc[0],
+            'status': lambda x: x.iloc[0],
+            'body': lambda x: x.iloc[0],
+            'title': lambda x: x.iloc[0],
+            'link': lambda x: x.iloc[0],
+            'image_url': lambda x: x.iloc[0],
+            'spend': 'sum',
+            'impressions': 'sum',
+            'outbound_clicks_outbound_click': 'sum',
+            'actions_lead': 'sum',
+            'actions_omni_purchase': 'sum'
+        }).reset_index()
+
+        dettaglioAd.rename(columns={
+            'ad_name': 'Ad',
+            'campaign': 'Campagna',
+            'adset_name': 'Adset',
+            'status': 'Stato',
+            'body': 'Testo',
+            'title': 'Titolo',
+            'link': 'Link',
+            'image_url': 'Immagine',
+            'spend': 'Spesa',
+            'impressions': 'Impression',
+            'outbound_clicks_outbound_click': 'Click',
+            'actions_lead': 'Lead',
+            'actions_omni_purchase': 'Vendite'
+        }, inplace=True)
+
+        dettaglioAd['CTR'] = (dettaglioAd['Click'] / dettaglioAd['Impression'] * 100).fillna(0)
+        dettaglioAd['CPC'] = (dettaglioAd['Spesa'] / dettaglioAd['Click']).fillna(0)
+        dettaglioAd['CPL'] = (dettaglioAd['Spesa'] / dettaglioAd['Lead']).fillna(0)
+        dettaglioAd['CPA'] = (dettaglioAd['Spesa'] / dettaglioAd['Vendite']).fillna(0)
+        
+        dettaglioAd = dettaglioAd[['Campagna', 'Adset', 'Ad', 'Stato', 'Testo', 'Titolo', 'Link', 'Immagine', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
+
+        return dettaglioAd
 
 class GadsAnalyzer(BaseAnalyzer):
     def __init__(self, start_date, end_date, comparison_start, comparison_end):
