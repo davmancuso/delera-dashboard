@@ -19,7 +19,7 @@ class MetaAnalyzer(BaseAnalyzer):
     def clean_data(self, df):
         return df.loc[
             (df["account_id"] == st.secrets["facebook_account_id"]) &
-            (~df["campaign"].str.contains(r"\[HR\]")) &
+            (~df["campaign"].str.contains(r"Ricerca figure")) &
             (~df["campaign"].str.contains(r"DENTALAI"))
         ]
     

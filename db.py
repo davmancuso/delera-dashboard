@@ -88,7 +88,11 @@ def save_to_database(df, table_name, is_api=True):
     cursor = conn.cursor()
 
     if is_api:
-        key_columns = ['date', 'campaign']
+        if table_name == 'facebook_data':
+            key_columns = ['date', 'campaign', 'adset_name', 'ad_name']
+        else:
+            key_columns = ['date', 'campaign']
+
         cursor.execute(f"SELECT {', '.join(key_columns)} FROM {table_name}")
     else:
         key_columns = ['id']
