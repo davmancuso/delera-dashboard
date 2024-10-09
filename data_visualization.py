@@ -357,9 +357,6 @@ def gads_attribution_metrics(results, results_comp, attribution_results, attribu
 def gads_campaign_details(dettaglioCampagne):
     dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
 
-    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
-    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
-    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
     st.dataframe(dettaglioCampagne, use_container_width=True)
 
 def gads_keyword_details(dettaglioKeyword):

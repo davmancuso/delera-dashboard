@@ -83,6 +83,14 @@ def initialize_database():
     conn.commit()
     conn.close()
 
+def delete_table(table_name):
+    conn = sqlite3.connect('local_data.db')
+    cursor = conn.cursor()
+    cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+    conn.commit()
+    conn.close()
+
+
 def save_to_database(df, table_name, is_api=True):
     conn = sqlite3.connect('local_data.db')
     cursor = conn.cursor()
