@@ -1,12 +1,13 @@
 import locale
 import pandas as pd
 import streamlit as st
+import locale
 
 def currency(value):
     try:
-        integer_part, decimal_part = f"{value:,.2f}".split(".")
-        integer_part = integer_part.replace(",", ".")
-        formatted_value = f"€ {integer_part},{decimal_part}"
+        locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
+        formatted_value = locale.currency(value, symbol='€', grouping=True)
+        formatted_value = formatted_value.replace('Eu', '€')
         return formatted_value
     except Exception as e:
         return "-"

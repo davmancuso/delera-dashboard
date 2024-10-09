@@ -106,13 +106,30 @@ def meta_attribution_metrics(results, results_comp, attribution_results, attribu
 def meta_campaign_details(dettaglioCampagne):
     dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
     
-    dettaglioCampagne['Spesa'] = dettaglioCampagne['Spesa'].apply(currency)
-    dettaglioCampagne['CTR'] = dettaglioCampagne['CTR'].apply(percentage)
-    dettaglioCampagne['CPC'] = dettaglioCampagne['CPC'].apply(currency)
-    dettaglioCampagne['CPL'] = dettaglioCampagne['CPL'].apply(currency)
-    dettaglioCampagne['CPA'] = dettaglioCampagne['CPA'].apply(currency)
-    
-    st.dataframe(dettaglioCampagne, use_container_width=True)
+    st.dataframe(dettaglioCampagne,
+        use_container_width=True,
+        column_config={
+            "Spesa": st.column_config.NumberColumn(
+                "Spesa",
+                format="€ %.2f"),
+            "CTR": st.column_config.NumberColumn(
+                "CTR",
+                help="Click-Through Rate",
+                format="%.2f%%"),
+            "CPC": st.column_config.NumberColumn(
+                "CPC",
+                help="Costo per click",
+                format="€ %.2f"),
+            "CPL": st.column_config.NumberColumn(
+                "CPL",
+                help="Costo per lead",
+                format="€ %.2f"),
+            "CPA": st.column_config.NumberColumn(
+                "CPA",
+                help="Costo per acquisizione",
+                format="€ %.2f")
+        },
+        hide_index=True)
 
 def meta_ad_details(dettaglioAd):
     if dettaglioAd is None:
@@ -142,33 +159,11 @@ def meta_ad_details(dettaglioAd):
                     key='adset_filter',
                     placeholder='Seleziona gli adset'
                 )
-            
-            adsets_selected = len(adset_filter) > 0
-            if adsets_selected:
-                filtered_ad_names = dettaglioAd[dettaglioAd['Adset'].isin(adset_filter)]['Ad'].unique().tolist()
-                with col3:
-                    ad_name_filter = st.multiselect(
-                        "Seleziona gli annunci",
-                        options=filtered_ad_names,
-                        default=[],  # Nessuna selezione di default
-                        key='ad_name_filter'
-                    )
-            else:
-                filtered_ad_names = dettaglioAd[dettaglioAd['Campagna'].isin(campaign_filter)]['Ad'].unique().tolist()
-                with col3:
-                    ad_name_filter = st.multiselect(
-                        "Seleziona gli annunci",
-                        options=filtered_ad_names,
-                        default=[],
-                        key='ad_name_filter',
-                        placeholder='Seleziona gli annunci'
-                    )
         else:
             avec_col2 = col2.empty()
             avec_col3 = col3.empty()
-            
+
             adset_filter = []
-            ad_name_filter = []
 
     filtra_dettaglioAd = dettaglioAd.copy()
     
@@ -177,9 +172,6 @@ def meta_ad_details(dettaglioAd):
     
     if 'adset_filter' in locals() and len(adset_filter) > 0:
         filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Adset'].isin(adset_filter)]
-    
-    if 'ad_name_filter' in locals() and len(ad_name_filter) > 0:
-        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Ad'].isin(ad_name_filter)]
     
     filtra_dettaglioAd = filtra_dettaglioAd.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
     
@@ -192,25 +184,35 @@ def meta_ad_details(dettaglioAd):
     if filtra_dettaglioAd.empty:
         st.warning("Nessun record trovato per i filtri selezionati.")
     else:
-        col1, col2, col3 = st.columns(3)
+        cols = st.columns(3)
         for index, row in filtra_dettaglioAd.iterrows():
-            with col1 if index % 3 == 0 else col2 if index % 3 == 1 else col3:
-                with st.container():
-                    st.markdown(
-                        f"""
-                        <div style="border: 3px solid {
-                            '#008000' if row['Stato'] == 'ACTIVE' else
-                            '#ffd32c' if row['Stato'] == 'PAUSED' else
-                            '#cd1c18'
-                        }; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
-                            {'<h5>Titolo dinamico</h5>' if row['Titolo'] is None else f'<h5>{row['Titolo']}</h5>'}
-                            {'<p>Testo dinamico</p>' if row['Testo'] is None else f'<p>{row['Testo']}</p>'}
-                            {'<p>Immagine dinamica</p>' if row['Immagine'] is None else f'<img src="{row["Immagine"]}" style="max-width:100%;">'}
-                            {'<p>Link non raggiungibile</p>' if row['Link'] is None else f'<a href="{row["Link"]}" target="_blank">Link</a>'}
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+            col = cols[index % 3]
+
+            border_color = '#008000' if row['Stato'] == 'ACTIVE' else '#ffd32c' if row['Stato'] == 'PAUSED' else '#cd1c18'
+
+            title = '<h3>Titolo dinamico</h3>' if pd.isna(row['Titolo']) else f"<h3>{row['Titolo']}</h3>"
+            text = '<p>Testo dinamico</p>' if pd.isna(row['Testo']) else f"<p>{row['Testo']}</p>"
+            img_tag = '<p>Immagine dinamica</p>' if pd.isna(row['Immagine']) else f'<img src="{row["Immagine"]}" style="max-width:100%; border-radius:5px;">'
+            link_tag = '<p>Link non raggiungibile</p>' if pd.isna(row['Link']) else f'<a href="{row["Link"]}" target="_blank" style="color:#1E90FF; text-decoration: none;">Link all\'annuncio</a>'
+            
+            card_html = f"""
+            <div style="
+                border: 2px solid {border_color};
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+                transition: 0.3s;
+                max-width: 500px;
+            ">
+                {title}
+                {text}
+                {img_tag}
+                {link_tag}
+            </div>
+            """
+
+            col.markdown(card_html, unsafe_allow_html=True)
 
 def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Meta")
@@ -1004,9 +1006,18 @@ def leader_board_venditori(opp_results, opp_results_comp):
         display_metric("Maggior tasso di conversione", "-", 1)
 
     st.subheader("Performance venditori")
-    opp_results['vendite_venditore']['Fatturato totale'] = opp_results['vendite_venditore']['Fatturato totale'].apply(currency)
-    opp_results['vendite_venditore']['Fatturato medio'] = opp_results['vendite_venditore']['Fatturato medio'].apply(currency)
-    st.dataframe(opp_results['vendite_venditore'], use_container_width=True)
+    
+    st.dataframe(opp_results['vendite_venditore'],
+        use_container_width=True,
+        column_config={
+            "Fatturato totale": st.column_config.NumberColumn(
+                "Fatturato totale",
+                format="€ %.2f"),
+            "Fatturato medio": st.column_config.NumberColumn(
+                "Fatturato medio",
+                format="€ %.2f")
+        },
+        hide_index=True)
 
 def venditori_analysis(opp_results, opp_results_comp):
     st.title("Analisi dei venditori")
