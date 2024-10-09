@@ -163,12 +163,11 @@ if aggiorna_tabella:
         "transaction_data": lambda: transaction_retrieving(pool, comparison_start, end_date)
     }
 
-    if tabella_selezionata is "Database vuoto":
+    if tabella_selezionata == "Database vuoto":
         st.error("Inizializza il database per poter utilizzare questa funzione")
     elif tabella_selezionata in retrieval_mapping:
         try:
             retrieval_mapping[tabella_selezionata]()
-            st.success(f"Tabella {tabella_selezionata} aggiornata correttamente")
         except Exception as e:
             st.error(f"Errore durante l'aggiornamento della tabella: {str(e)}")
     else:
@@ -176,12 +175,11 @@ if aggiorna_tabella:
         fields = FIELDS[source]
         try:
             api_retrieve_data(source, fields, comparison_start, end_date)
-            st.success(f"Tabella {tabella_selezionata} aggiornata correttamente")
         except Exception as e:
             st.error(f"Errore durante l'aggiornamento della tabella: {str(e)}")
 
 if elimina_tabella:
-    if tabella_selezionata is "Database vuoto":
+    if tabella_selezionata == "Database vuoto":
         st.error("Inizializza il database per poter utilizzare questa funzione")
     else:
         try:
