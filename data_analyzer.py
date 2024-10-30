@@ -414,21 +414,25 @@ class OppAnalyzer(BaseAnalyzer):
 
     def get_vendite_per_venditore(self, df):
         venditori = COMMERCIALI['venditori']
-        vendite_venditore = pd.DataFrame(columns=['Venditore', 'Vendite', 'Fatturato totale', 'Fatturato medio'])
+        vendite_list = []
 
         for venditore in venditori:
             vendite = df[(df['stage'].isin(STAGES['vinti'])) & (df['venditore'] == venditore)]
             num_vendite = vendite.shape[0]
             valore_totale = vendite['monetaryValue'].sum()
 
-            vendite_venditore = pd.concat([vendite_venditore, pd.DataFrame({
-                'Venditore': [venditore],
-                'Vendite': [num_vendite],
-                'Fatturato totale': [valore_totale],
-                'Fatturato medio': [valore_totale / num_vendite if num_vendite > 0 else 0]
-            })], ignore_index=True)
+            venditore_data = {
+                'Venditore': venditore,
+                'Vendite': num_vendite,
+                'Fatturato totale': valore_totale,
+                'Fatturato medio': valore_totale / num_vendite if num_vendite > 0 else 0
+            }
 
-        vendite_venditore = vendite_venditore.sort_values(by='Fatturato totale', ascending=False)
+            vendite_list.append(venditore_data)
+
+        vendite_venditore = pd.DataFrame(vendite_list)
+
+        vendite_venditore = vendite_venditore.sort_values(by='Fatturato totale', ascending=False).reset_index(drop=True)
 
         return vendite_venditore
 
