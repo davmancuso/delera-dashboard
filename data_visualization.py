@@ -104,32 +104,61 @@ def meta_attribution_metrics(results, results_comp, attribution_results, attribu
         display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
 
 def meta_campaign_details(dettaglioCampagne):
-    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
+    if dettaglioCampagne is None:
+        st.error("Dati dettaglio campagne non disponibili.")
+        return
     
-    st.dataframe(dettaglioCampagne,
-        use_container_width=True,
-        column_config={
-            "Spesa": st.column_config.NumberColumn(
-                "Spesa",
-                format="€ %.2f"),
-            "CTR": st.column_config.NumberColumn(
-                "CTR",
-                help="Click-Through Rate",
-                format="%.2f%%"),
-            "CPC": st.column_config.NumberColumn(
-                "CPC",
-                help="Costo per click",
-                format="€ %.2f"),
-            "CPL": st.column_config.NumberColumn(
-                "CPL",
-                help="Costo per lead",
-                format="€ %.2f"),
-            "CPA": st.column_config.NumberColumn(
-                "CPA",
-                help="Costo per acquisizione",
-                format="€ %.2f")
-        },
-        hide_index=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        campaigns = dettaglioCampagne['Campagna'].unique().tolist()
+        campagne_campaign_filter = st.multiselect(
+            "Seleziona le campagne",
+            options=campaigns,
+            default=[],
+            key='campagne_campaign_filter',
+            placeholder='Seleziona le campagne'
+        )
+
+        campaigns_selected = len(campagne_campaign_filter) > 0
+
+        avec_col2 = col2.empty()
+        avec_col3 = col3.empty()
+
+    filtra_dettaglioCampagne = dettaglioCampagne.copy()
+
+    if campaigns_selected:
+        filtra_dettaglioCampagne = filtra_dettaglioCampagne[filtra_dettaglioCampagne['Campagna'].isin(campagne_campaign_filter)]
+    
+    filtra_dettaglioCampagne = filtra_dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
+    
+    if filtra_dettaglioCampagne.empty:
+        st.warning("Nessun record trovato per i filtri selezionati.")
+    else:
+        st.dataframe(filtra_dettaglioCampagne,
+            height=400,
+            use_container_width=True,
+            column_config={
+                "Spesa": st.column_config.NumberColumn(
+                    "Spesa",
+                    format="€ %.2f"),
+                "CTR": st.column_config.NumberColumn(
+                    "CTR",
+                    help="Click-Through Rate",
+                    format="%.2f%%"),
+                "CPC": st.column_config.NumberColumn(
+                    "CPC",
+                    help="Costo per click",
+                    format="€ %.2f"),
+                "CPL": st.column_config.NumberColumn(
+                    "CPL",
+                    help="Costo per lead",
+                    format="€ %.2f"),
+                "CPA": st.column_config.NumberColumn(
+                    "CPA",
+                    help="Costo per acquisizione",
+                    format="€ %.2f")
+            },
+            hide_index=True)
 
 def meta_ad_details(dettaglioAd):
     if dettaglioAd is None:
@@ -143,7 +172,7 @@ def meta_ad_details(dettaglioAd):
             "Seleziona le campagne",
             options=campaigns,
             default=[],
-            key='campaign_filter',
+            key='ad_campaign_filter',
             placeholder='Seleziona le campagne'
         )
 
@@ -152,34 +181,28 @@ def meta_ad_details(dettaglioAd):
             filtered_adsets = dettaglioAd[dettaglioAd['Campagna'].isin(campaign_filter)]['Adset'].unique().tolist()
             
             with col2:
-                adset_filter = st.multiselect(
+                ad_adset_filter = st.multiselect(
                     "Seleziona gli adset",
                     options=filtered_adsets,
                     default=[],
-                    key='adset_filter',
+                    key='ad_adset_filter',
                     placeholder='Seleziona gli adset'
                 )
         else:
             avec_col2 = col2.empty()
             avec_col3 = col3.empty()
 
-            adset_filter = []
+            ad_adset_filter = []
 
     filtra_dettaglioAd = dettaglioAd.copy()
     
     if campaigns_selected:
         filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Campagna'].isin(campaign_filter)]
     
-    if 'adset_filter' in locals() and len(adset_filter) > 0:
-        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Adset'].isin(adset_filter)]
+    if 'ad_adset_filter' in locals() and len(ad_adset_filter) > 0:
+        filtra_dettaglioAd = filtra_dettaglioAd[filtra_dettaglioAd['Adset'].isin(ad_adset_filter)]
     
     filtra_dettaglioAd = filtra_dettaglioAd.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
-    
-    filtra_dettaglioAd['Spesa'] = filtra_dettaglioAd['Spesa'].apply(currency)
-    filtra_dettaglioAd['CTR'] = filtra_dettaglioAd['CTR'].apply(percentage)
-    filtra_dettaglioAd['CPC'] = filtra_dettaglioAd['CPC'].apply(currency)
-    filtra_dettaglioAd['CPL'] = filtra_dettaglioAd['CPL'].apply(currency)
-    filtra_dettaglioAd['CPA'] = filtra_dettaglioAd['CPA'].apply(currency)
     
     if filtra_dettaglioAd.empty:
         st.warning("Nessun record trovato per i filtri selezionati.")
@@ -190,7 +213,26 @@ def meta_ad_details(dettaglioAd):
                 "Link": st.column_config.LinkColumn(
                     "Link",
                     display_text="Link"
-                )
+                ),
+                "Spesa": st.column_config.NumberColumn(
+                    "Spesa",
+                    format="€ %.2f"),
+                "CTR": st.column_config.NumberColumn(
+                    "CTR",
+                    help="Click-Through Rate",
+                    format="%.2f%%"),
+                "CPC": st.column_config.NumberColumn(
+                    "CPC",
+                    help="Costo per click",
+                    format="€ %.2f"),
+                "CPL": st.column_config.NumberColumn(
+                    "CPL",
+                    help="Costo per lead",
+                    format="€ %.2f"),
+                "CPA": st.column_config.NumberColumn(
+                    "CPA",
+                    help="Costo per acquisizione",
+                    format="€ %.2f")
             },
             column_order=[
                 "Ad",
