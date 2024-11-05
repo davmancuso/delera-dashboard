@@ -158,6 +158,19 @@ def meta_campaign_details(dettaglioCampagne):
                     help="Costo per acquisizione",
                     format="€ %.2f")
             },
+            column_order=[
+                "Adset",
+                "Stato",
+                "Spesa",
+                "Impression",
+                "Click",
+                "CTR",
+                "CPC",
+                "Lead",
+                "CPL",
+                "Vendite",
+                "CPA"
+            ],
             hide_index=True)
 
 def meta_ad_details(dettaglioAd):
