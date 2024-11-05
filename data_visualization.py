@@ -184,35 +184,30 @@ def meta_ad_details(dettaglioAd):
     if filtra_dettaglioAd.empty:
         st.warning("Nessun record trovato per i filtri selezionati.")
     else:
-        cols = st.columns(3)
-        for index, row in filtra_dettaglioAd.iterrows():
-            col = cols[index % 3]
-
-            border_color = '#008000' if row['Stato'] == 'ACTIVE' else '#ffd32c' if row['Stato'] == 'PAUSED' else '#cd1c18'
-
-            title = '<h3>Titolo dinamico</h3>' if pd.isna(row['Titolo']) else f"<h3>{row['Titolo']}</h3>"
-            text = '<p>Testo dinamico</p>' if pd.isna(row['Testo']) else f"<p>{row['Testo']}</p>"
-            img_tag = '<p>Immagine dinamica</p>' if pd.isna(row['Immagine']) else f'<img src="{row["Immagine"]}" style="max-width:100%; border-radius:5px;">'
-            link_tag = '<p>Link non raggiungibile</p>' if pd.isna(row['Link']) else f'<a href="{row["Link"]}" target="_blank" style="color:#1E90FF; text-decoration: none;">Link all\'annuncio</a>'
-            
-            card_html = f"""
-            <div style="
-                border: 2px solid {border_color};
-                border-radius: 10px;
-                padding: 15px;
-                margin-bottom: 15px;
-                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-                transition: 0.3s;
-                max-width: 500px;
-            ">
-                {title}
-                {text}
-                {img_tag}
-                {link_tag}
-            </div>
-            """
-
-            col.markdown(card_html, unsafe_allow_html=True)
+        st.dataframe(filtra_dettaglioAd,
+            height=400,
+            column_config={
+                "Link": st.column_config.LinkColumn(
+                    "Link",
+                    display_text="Link"
+                )
+            },
+            column_order=[
+                "Ad",
+                "Stato",
+                "Link",
+                "Spesa",
+                "Impression",
+                "Click",
+                "CTR",
+                "CPC",
+                "Lead",
+                "CPL",
+                "Vendite",
+                "CPA"
+            ],
+            use_container_width=True,
+            hide_index=True)
 
 def meta_analysis(results, results_comp, attribution_results, attribution_results_comp):
     st.title("Analisi delle campagne Meta")
