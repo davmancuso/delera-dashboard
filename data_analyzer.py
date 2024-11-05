@@ -204,6 +204,76 @@ class GadsAnalyzer(BaseAnalyzer):
 
         return dettaglioKeyword
 
+class TikTokAnalyzer(BaseAnalyzer):
+    def __init__(self, start_date, end_date, comparison_start, comparison_end):
+        super().__init__(start_date, end_date, comparison_start, comparison_end)
+    
+    def clean_data(self, df):
+        return df.loc[
+            (df["account_id"] == st.secrets["tiktok_account_id"])
+        ]
+    
+    def aggregate_results(self, df, is_comparison=False):
+        aggregate_results = {
+            'start_date': self.comparison_start if is_comparison else self.start_date,
+            'end_date': self.comparison_end if is_comparison else self.end_date,
+            'spesa_totale': df["spend"].sum(),
+            'impression': df["impressions"].sum(),
+            'click': df["clicks"].sum(),
+            'campagne_attive': df["campaign"].nunique(),
+            'spesa_giornaliera': df.groupby('date')['spend'].sum().reset_index(),
+            'dettaglio_campagne': self.get_campaign_details(df)
+        }
+
+        for r in [aggregate_results]:
+            r['cpm'] = r['spesa_totale'] / r['impression'] * 1000 if r['impression'] != 0 else 0
+            r['ctr'] = (r['click'] / r['impression']) * 100 if r['impression'] != 0 else 0
+            r['cpc'] = r['spesa_totale'] / r['click'] if r['click'] != 0 else 0
+        
+        return aggregate_results
+
+    def analyze(self):
+        df_raw = get_data("tiktok_data", self.start_date, self.end_date)
+        df_raw_comp = get_data("tiktok_data", self.comparison_start, self.comparison_end)
+
+        df = self.clean_data(df_raw)
+        df_comp = self.clean_data(df_raw_comp)
+
+        results = self.aggregate_results(df)
+        results_comp = self.aggregate_results(df_comp, is_comparison=True)
+        return results, results_comp
+
+    def get_campaign_details(self, df):
+        dettaglioCampagne = df.groupby('ad_group_name').agg({
+            'campaign': lambda x: x.iloc[0],
+            'ad_group_operation_status': lambda x: x.iloc[0],
+            'spend': 'sum',
+            'impressions': 'sum',
+            'clicks': 'sum',
+            'total_sales_lead': 'sum',
+            'total_purchase': 'sum'
+        }).reset_index()
+
+        dettaglioCampagne.rename(columns={
+            'ad_group_name': 'Ad group',
+            'campaign': 'Campagna',
+            'ad_group_operation_status': 'Stato',
+            'spend': 'Spesa',
+            'impressions': 'Impression',
+            'clicks': 'Click',
+            'total_sales_lead': 'Lead',
+            'total_purchase': 'Vendite'
+        }, inplace=True)
+
+        dettaglioCampagne['CTR'] = (dettaglioCampagne['Click'] / dettaglioCampagne['Impression'] * 100).fillna(0)
+        dettaglioCampagne['CPC'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Click']).fillna(0)
+        dettaglioCampagne['CPL'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Lead']).fillna(0)
+        dettaglioCampagne['CPA'] = (dettaglioCampagne['Spesa'] / dettaglioCampagne['Vendite']).fillna(0)
+        
+        dettaglioCampagne = dettaglioCampagne[['Campagna', 'Ad group', 'Stato', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
+
+        return dettaglioCampagne
+
 class GanalyticsAnalyzer(BaseAnalyzer):
     def __init__(self, start_date, end_date, comparison_start, comparison_end):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
@@ -479,7 +549,15 @@ class AttributionAnalyzer(BaseAnalyzer):
             'lead_google_vendite_gestione': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeGestione']))].shape[0],
             'lead_google_vendite_da_chiudere': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeChiusura']))].shape[0],
             'lead_google_vinti': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['vinti']))].shape[0],
-            'lead_google_persi': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['persi']))].shape[0]
+            'lead_google_persi': df[(df['fonte'] == 'Google Ads') & (df['pipeline_stage_name'].isin(STAGES['persi']))].shape[0],
+            'lead_tiktok': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['stages']))].shape[0],
+            'lead_tiktok_da_qualificare': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['daQualificare']))].shape[0],
+            'lead_tiktok_qualificati': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['qualificati']))].shape[0],
+            'lead_tiktok_lead_persi': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['leadPersi']))].shape[0],
+            'lead_tiktok_vendite_gestione': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeGestione']))].shape[0],
+            'lead_tiktok_vendite_da_chiudere': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['venditeChiusura']))].shape[0],
+            'lead_tiktok_vinti': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['vinti']))].shape[0],
+            'lead_tiktok_persi': df[(df['fonte'] == 'Tiktok Ads') & (df['pipeline_stage_name'].isin(STAGES['persi']))].shape[0]
         }
         
         return aggregate_results

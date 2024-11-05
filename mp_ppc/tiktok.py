@@ -3,8 +3,8 @@ import numpy as np
 import time
 from datetime import datetime, timedelta
 
-from data_analyzer import BaseAnalyzer, MetaAnalyzer, AttributionAnalyzer
-from data_visualization import meta_analysis
+from data_analyzer import BaseAnalyzer, TikTokAnalyzer, AttributionAnalyzer
+from data_visualization import tiktok_analysis
 
 # ------------------------------
 #             SIDEBAR
@@ -16,7 +16,7 @@ st.sidebar.write("Dashboard realizzata da Brain on strategy")
 # ------------------------------
 st.title("Dashboard")
 
-st.subheader("Performance Meta Ads")
+st.subheader("Performance TikTok Ads")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -80,11 +80,11 @@ st.session_state['lead_radio'] = lead_radio
 # Data processing
 # ------------------------------
 try:
-    meta_analyzer = MetaAnalyzer(start_date, end_date, comparison_start, comparison_end)
-    meta_results, meta_results_comp = meta_analyzer.analyze()
+    tiktok_analyzer = TikTokAnalyzer(start_date, end_date, comparison_start, comparison_end)
+    tiktok_results, tiktok_results_comp = tiktok_analyzer.analyze()
 except Exception as e:
-    st.warning(f"Errore nell'elaborazione dei dati di Meta: {str(e)}")
-    meta_results, meta_results_comp = {}, {}
+    st.warning(f"Errore nell'elaborazione dei dati di TikTok: {str(e)}")
+    tiktok_results, tiktok_results_comp = {}, {}
 
 try:
     attribution_analyzer = AttributionAnalyzer(start_date, end_date, comparison_start, comparison_end, update_type_attribution)
@@ -95,4 +95,4 @@ except Exception as e:
 
 # Data visualization
 # ------------------------------
-meta_analysis(meta_results, meta_results_comp, attribution_results, attribution_results_comp)
+tiktok_analysis(tiktok_results, tiktok_results_comp, attribution_results, attribution_results_comp)

@@ -89,4 +89,5 @@ except Exception as e:
 
 # Data visualization
 # ------------------------------
+st.error("Scheda in costruzione")
 venditori_analysis(opp_results, opp_results_comp)

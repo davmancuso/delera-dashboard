@@ -408,6 +408,165 @@ def gads_analysis(results, results_comp, attribution_results, attribution_result
         st.error(f"Si è verificato un errore durante l'elaborazione delle keyword su Google Ads: {str(e)}")
 
 # ------------------------------
+#            TIKTOK
+# ------------------------------
+def tiktok_metrics(results, results_comp):
+    spesa_totale_delta = get_metric_delta(results["spesa_totale"], results_comp["spesa_totale"])
+    display_metric("Spesa totale", currency(results["spesa_totale"]), spesa_totale_delta)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        campagne_attive_delta = get_metric_delta(results["campagne_attive"], results_comp["campagne_attive"])
+        display_metric("Campagne attive", results["campagne_attive"], campagne_attive_delta)
+
+        cpm_delta = get_metric_delta(results["cpm"], results_comp["cpm"])
+        display_metric("CPM", currency(results["cpm"]) if results["cpm"] != 0 else "-", cpm_delta, is_delta_inverse=True)
+    with col2:
+        impression_delta = get_metric_delta(results["impression"], results_comp["impression"])
+        display_metric("Impression", thousand_0(results["impression"]), impression_delta)
+
+        ctr_delta = get_metric_delta(results["ctr"], results_comp["ctr"])
+        display_metric("CTR", percentage(results["ctr"]) if results["ctr"] != 0 else "-", ctr_delta)
+    with col3:
+        click_delta = get_metric_delta(results["click"], results_comp["click"])
+        display_metric("Click", thousand_0(results["click"]), click_delta)
+
+        cpc_delta = get_metric_delta(results["cpc"], results_comp["cpc"])
+        display_metric("CPC", currency(results["cpc"]) if results["cpc"] != 0 else "-", cpc_delta, is_delta_inverse=True)
+
+def tiktok_spend_chart(results, results_comp):
+    daily_spend_current = process_daily_data(results, 'Periodo Corrente', 'spesa_giornaliera')
+    daily_spend_comp = process_daily_data(results_comp, 'Periodo Precedente', 'spesa_giornaliera')
+
+    daily_spend_current['day'] = (daily_spend_current['date'] - daily_spend_current['date'].min()).dt.days
+    daily_spend_comp['day'] = (daily_spend_comp['date'] - daily_spend_comp['date'].min()).dt.days
+
+    combined_spend = pd.concat([daily_spend_comp, daily_spend_current])
+
+    color_map = {
+        'Periodo Corrente': '#b12b94',
+        'Periodo Precedente': '#eb94d8'
+    }
+
+    hover_data = {
+        'period': True,
+        'date': True,
+        'spend': ':.2f',
+        'day': False
+    }
+
+    fig_spend = px.line(combined_spend, x='day', y='spend', color='period',
+                title='Spesa giornaliera',
+                markers=True,
+                labels={'day': 'Giorno relativo al periodo', 'spend': 'Spesa (€)', 'period': 'Periodo'},
+                color_discrete_map=color_map,
+                hover_data=hover_data)
+
+    fig_spend.update_traces(mode='lines+markers')
+    fig_spend.update_yaxes(range=[0, None], fixedrange=False, rangemode="tozero")
+    fig_spend.update_xaxes(title='Giorno del periodo')
+    fig_spend.update_traces(hovertemplate='<b>%{customdata[0]}</b><br>Data: %{customdata[1]|%d/%m/%Y}<br>Spesa (€): %{y:.2f}<extra></extra>')
+    fig_spend.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.4,
+            xanchor="center",
+            x=0.5
+        )
+    )
+
+    st.plotly_chart(fig_spend)
+
+def tiktok_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp):
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        attribution_delta = get_metric_delta(attribution_results["lead_tiktok"], attribution_results_comp["lead_tiktok"])
+        display_metric("Lead TikTok", attribution_results["lead_tiktok"], attribution_delta)
+
+        cpl = results["spesa_totale"] / attribution_results["lead_tiktok"] if attribution_results["lead_tiktok"] != 0 else 0
+        cpl_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_tiktok"] if attribution_results_comp["lead_tiktok"] != 0 else 0
+        cpl_delta = get_metric_delta(cpl, cpl_comp)
+        display_metric("Cpl", currency(cpl), cpl_delta, is_delta_inverse=True)
+    with col2:
+        attribution_qualificati_delta = get_metric_delta(attribution_results["lead_tiktok_qualificati"], attribution_results_comp["lead_tiktok_qualificati"])
+        display_metric("Lead TikTok Qualificati", attribution_results["lead_tiktok_qualificati"], attribution_qualificati_delta)
+
+        cpl_qualificati = results["spesa_totale"] / attribution_results["lead_tiktok_qualificati"] if attribution_results["lead_tiktok_qualificati"] != 0 else 0
+        cpl_qualificati_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_tiktok_qualificati"] if attribution_results_comp["lead_tiktok_qualificati"] != 0 else 0
+        cpl_qualificati_delta = get_metric_delta(cpl_qualificati, cpl_qualificati_comp)
+        display_metric("Cpl Qualificati", currency(cpl_qualificati), cpl_qualificati_delta, is_delta_inverse=True)
+    with col3:
+        attribution_vinti_delta = get_metric_delta(attribution_results["lead_tiktok_vinti"], attribution_results_comp["lead_tiktok_vinti"])
+        display_metric("Lead TikTok Vinti", attribution_results["lead_tiktok_vinti"], attribution_vinti_delta)
+
+        cpl_vinti = results["spesa_totale"] / attribution_results["lead_tiktok_vinti"] if attribution_results["lead_tiktok_vinti"] != 0 else 0
+        cpl_vinti_comp = results_comp["spesa_totale"] / attribution_results_comp["lead_tiktok_vinti"] if attribution_results_comp["lead_tiktok_vinti"] != 0 else 0
+        cpl_vinti_delta = get_metric_delta(cpl_vinti, cpl_vinti_comp)
+        display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
+
+def tiktok_campaign_details(dettaglioCampagne):
+    dettaglioCampagne = dettaglioCampagne.sort_values(by='Spesa', ascending=False).reset_index(drop=True)
+    
+    st.dataframe(dettaglioCampagne,
+        use_container_width=True,
+        column_config={
+            "Spesa": st.column_config.NumberColumn(
+                "Spesa",
+                format="€ %.2f"),
+            "CTR": st.column_config.NumberColumn(
+                "CTR",
+                help="Click-Through Rate",
+                format="%.2f%%"),
+            "CPC": st.column_config.NumberColumn(
+                "CPC",
+                help="Costo per click",
+                format="€ %.2f"),
+            "CPL": st.column_config.NumberColumn(
+                "CPL",
+                help="Costo per lead",
+                format="€ %.2f"),
+            "CPA": st.column_config.NumberColumn(
+                "CPA",
+                help="Costo per acquisizione",
+                format="€ %.2f")
+        },
+        hide_index=True)
+
+def tiktok_analysis(results, results_comp, attribution_results, attribution_results_comp):
+    st.title("Analisi delle campagne TikTok")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        try:
+            tiktok_metrics(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche TikTok: {str(e)}")
+    with col2:
+        try:
+            tiktok_spend_chart(results, results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione del grafico sulla spesa di TikTok: {str(e)}")
+    
+    st.title("Analisi delle attribuzioni TikTok")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        try:
+            tiktok_attribution_metrics(results, results_comp, attribution_results, attribution_results_comp)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione delle metriche di attribuzione di TikTok: {str(e)}")
+    with col4:
+        pass
+
+    st.title("Dettaglio delle campagne")
+
+    try:
+        tiktok_campaign_details(results['dettaglio_campagne'].copy())
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione delle campagne su TikTok: {str(e)}")
+
+# ------------------------------
 #        GOOGLE ANALYTICS
 # ------------------------------
 def ganalytics_metrics(results, results_comp):

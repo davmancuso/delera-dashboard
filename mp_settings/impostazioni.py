@@ -125,6 +125,7 @@ pool = mysql.connector.pooling.MySQLConnectionPool(
 data_sources = [
     ('facebook', FIELDS['facebook']),
     ('google_ads', FIELDS['google_ads']),
+    ('tiktok', FIELDS['tiktok']),
     ('googleanalytics4', FIELDS['googleanalytics4']),
 ]
 

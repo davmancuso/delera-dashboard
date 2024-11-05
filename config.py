@@ -60,6 +60,7 @@ STAGES = {
 FIELDS = {
     'facebook': "datasource,source,account_id,account_name,date,campaign,adset_name,adset_status,ad_name,status,body,title,link,image_url,spend,impressions,outbound_clicks_outbound_click,actions_lead,actions_omni_purchase",
     'google_ads': "datasource,source,account_id,account_name,date,campaign,spend,impressions,clicks,keyword_text",
+    'tiktok': "datasource,source,account_id,account_name,date,campaign,ad_group_name,ad_group_operation_status,ad_name,ad_operation_status,spend,impressions,clicks,total_sales_lead,total_purchase",
     'googleanalytics4': "datasource,source,account_id,account_name,date,campaign,sessions,engaged_sessions,active_users,page_path,user_engagement_duration"
 }
 

@@ -41,6 +41,23 @@ def initialize_database():
                 clicks INTEGER, 
                 keyword_text TEXT)''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS tiktok_data
+                (datasource TEXT, 
+                source TEXT, 
+                account_id TEXT, 
+                account_name TEXT, 
+                date TEXT, 
+                campaign TEXT, 
+                ad_group_name TEXT,
+                ad_group_operation_status TEXT,
+                ad_name TEXT,
+                ad_operation_status TEXT,
+                spend REAL, 
+                impressions INTEGER, 
+                clicks INTEGER, 
+                total_sales_lead INTEGER, 
+                total_purchase INTEGER)''')
+
     c.execute('''CREATE TABLE IF NOT EXISTS googleanalytics4_data
                 (datasource TEXT, 
                 source TEXT, 
@@ -98,7 +115,12 @@ def save_to_database(df, table_name, is_api=True):
     if is_api:
         if table_name == 'facebook_data':
             key_columns = ['date', 'campaign', 'adset_name', 'ad_name']
+        elif table_name == 'google_ads_data':
+            key_columns = ['date', 'campaign']
+        elif table_name == 'tiktok_data':
+            key_columns = ['date', 'campaign', 'ad_group_name', 'ad_name']
         else:
+            st.warning(f"Tabella {table_name} non supportata nella funzione save_to_database. I dati potrebbero non essere salvati correttamente.")
             key_columns = ['date', 'campaign']
 
         cursor.execute(f"SELECT {', '.join(key_columns)} FROM {table_name}")
