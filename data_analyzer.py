@@ -62,7 +62,7 @@ class MetaAnalyzer(BaseAnalyzer):
             'impressions': 'sum',
             'outbound_clicks_outbound_click': 'sum',
             'actions_lead': 'sum',
-            'actions_omni_purchase': 'sum'
+            'actions_purchase': 'sum'
         }).reset_index()
 
         dettaglioCampagne.rename(columns={
@@ -73,7 +73,7 @@ class MetaAnalyzer(BaseAnalyzer):
             'impressions': 'Impression',
             'outbound_clicks_outbound_click': 'Click',
             'actions_lead': 'Lead',
-            'actions_omni_purchase': 'Vendite'
+            'actions_purchase': 'Vendite'
         }, inplace=True)
 
         dettaglioCampagne['CTR'] = (dettaglioCampagne['Click'] / dettaglioCampagne['Impression'] * 100).fillna(0)
@@ -90,15 +90,12 @@ class MetaAnalyzer(BaseAnalyzer):
             'campaign': lambda x: x.iloc[0],
             'adset_name': lambda x: x.iloc[0],
             'status': lambda x: x.iloc[0],
-            'body': lambda x: x.iloc[0],
-            'title': lambda x: x.iloc[0],
             'link': lambda x: x.iloc[0],
-            'image_url': lambda x: x.iloc[0],
             'spend': 'sum',
             'impressions': 'sum',
             'outbound_clicks_outbound_click': 'sum',
             'actions_lead': 'sum',
-            'actions_omni_purchase': 'sum'
+            'actions_purchase': 'sum'
         }).reset_index()
 
         dettaglioAd.rename(columns={
@@ -114,7 +111,7 @@ class MetaAnalyzer(BaseAnalyzer):
             'impressions': 'Impression',
             'outbound_clicks_outbound_click': 'Click',
             'actions_lead': 'Lead',
-            'actions_omni_purchase': 'Vendite'
+            'actions_purchase': 'Vendite'
         }, inplace=True)
 
         dettaglioAd['CTR'] = (dettaglioAd['Click'] / dettaglioAd['Impression'] * 100).fillna(0)
@@ -122,7 +119,7 @@ class MetaAnalyzer(BaseAnalyzer):
         dettaglioAd['CPL'] = (dettaglioAd['Spesa'] / dettaglioAd['Lead']).fillna(0)
         dettaglioAd['CPA'] = (dettaglioAd['Spesa'] / dettaglioAd['Vendite']).fillna(0)
         
-        dettaglioAd = dettaglioAd[['Campagna', 'Adset', 'Ad', 'Stato', 'Testo', 'Titolo', 'Link', 'Immagine', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
+        dettaglioAd = dettaglioAd[['Campagna', 'Adset', 'Ad', 'Stato', 'Link', 'Spesa', 'Impression', 'Click', 'CTR', 'CPC', 'Lead', 'CPL', 'Vendite', 'CPA']]
 
         return dettaglioAd
 

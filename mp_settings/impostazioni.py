@@ -172,8 +172,9 @@ if aggiorna_tabella:
         except Exception as e:
             st.error(f"Errore durante l'aggiornamento della tabella: {str(e)}")
     else:
-        source = tabella_selezionata.split("_")[0]
+        source = tabella_selezionata.removesuffix("_data")
         fields = FIELDS[source]
+        
         try:
             api_retrieve_data(source, fields, comparison_start, end_date)
         except Exception as e:

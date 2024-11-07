@@ -19,15 +19,31 @@ def initialize_database():
                 adset_status TEXT,
                 ad_name TEXT,
                 status TEXT,
-                body TEXT,
-                title TEXT,
                 link TEXT,
-                image_url TEXT,
+                age TEXT,
+                gender TEXT,
                 spend REAL, 
                 impressions INTEGER, 
                 outbound_clicks_outbound_click INTEGER, 
                 actions_lead INTEGER, 
-                actions_omni_purchase INTEGER)''')
+                actions_purchase INTEGER)''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS facebook_geo_data
+                (datasource TEXT, 
+                source TEXT, 
+                account_id TEXT, 
+                account_name TEXT, 
+                date TEXT, 
+                campaign TEXT, 
+                adset_name TEXT,
+                ad_name TEXT,
+                country TEXT,
+                region TEXT,
+                spend REAL, 
+                impressions INTEGER, 
+                outbound_clicks_outbound_click INTEGER, 
+                actions_lead INTEGER, 
+                actions_purchase INTEGER)''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS google_ads_data
                 (datasource TEXT, 
@@ -111,10 +127,10 @@ def delete_table(table_name):
 def save_to_database(df, table_name, is_api=True):
     conn = sqlite3.connect('local_data.db')
     cursor = conn.cursor()
-
+    
     if is_api:
         if table_name == 'facebook_data':
-            key_columns = ['date', 'campaign', 'adset_name', 'ad_name']
+            key_columns = ['date', 'campaign', 'adset_name', 'ad_name', 'age', 'gender']
         elif table_name == 'google_ads_data':
             key_columns = ['date', 'campaign']
         elif table_name == 'tiktok_data':
