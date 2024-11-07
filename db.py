@@ -135,6 +135,8 @@ def save_to_database(df, table_name, is_api=True):
             key_columns = ['date', 'campaign']
         elif table_name == 'tiktok_data':
             key_columns = ['date', 'campaign', 'ad_group_name', 'ad_name']
+        elif table_name == 'googleanalytics4_data':
+            key_columns = ['date', 'campaign']
         else:
             st.warning(f"Tabella {table_name} non supportata nella funzione save_to_database. I dati potrebbero non essere salvati correttamente.")
             key_columns = ['date', 'campaign']
@@ -173,3 +175,31 @@ def get_data(table_name, start_date, end_date, custom_date_field='date'):
     conn.close()
     
     return df
+
+def show_table_data(table_name, start_date, end_date, custom_date_field='date'):
+    source = table_name.removesuffix("_data")
+    if custom_date_field == 'date':
+        account_id = st.secrets[f"{source}_account_id"]
+    else:
+        account_id = None
+
+    conn = sqlite3.connect('local_data.db')
+    
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    
+    schema_info = cursor.fetchall()
+    schema_df = pd.DataFrame(schema_info, columns=['id', 'nome', 'tipo', 'notnull', 'dflt_value', 'pk'])
+
+    if account_id:
+        data_df = pd.read_sql_query(f"SELECT * FROM {table_name} WHERE account_id = ? AND {custom_date_field} BETWEEN ? AND ?", conn, params=(account_id, start_date, end_date))
+    else:
+        data_df = pd.read_sql_query(f"SELECT * FROM {table_name} WHERE {custom_date_field} BETWEEN ? AND ?", conn, params=(start_date, end_date))
+    
+    conn.close()
+    
+    st.subheader("Struttura della tabella")
+    st.dataframe(schema_df, column_order=['id', 'nome', 'tipo'], use_container_width=True, hide_index=True)
+
+    st.subheader("Dati della tabella")
+    st.dataframe(data_df, use_container_width=True, hide_index=True)

@@ -4,7 +4,7 @@ import sqlite3
 import mysql.connector
 
 from config import STAGES, FIELDS
-from db import initialize_database, delete_table
+from db import initialize_database, delete_table, show_table_data
 from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, transaction_retrieving
 
 # ------------------------------
@@ -76,13 +76,17 @@ conn.close()
 col5, col6 = st.columns([1,1])
 with col5:
     tabella_selezionata = st.selectbox("Seleziona una tabella", tabelle if tabelle else ['Database vuoto'], disabled=(not tabelle))
-
-    col1, col2 = st.columns([1,1])
-    with col1:
-        aggiorna_tabella = st.button("Aggiorna la tabella", use_container_width=True)
-    with col2:
-        elimina_tabella = st.button("Elimina la tabella", use_container_width=True)
 with col6:
+    pass
+
+col7, col8, col9, col10 = st.columns([1,1,1,1])
+with col7:
+    aggiorna_tabella = st.button("Aggiorna la tabella", use_container_width=True)
+with col8:
+    mostra_tabella = st.button("Visualizza i dati della tabella", use_container_width=True)
+with col9:
+    elimina_tabella = st.button("Elimina la tabella", use_container_width=True)
+with col10:
     pass
 
 # Variabili d'ambiente
@@ -174,11 +178,20 @@ if aggiorna_tabella:
     else:
         source = tabella_selezionata.removesuffix("_data")
         fields = FIELDS[source]
-        
+
         try:
             api_retrieve_data(source, fields, comparison_start, end_date)
         except Exception as e:
             st.error(f"Errore durante l'aggiornamento della tabella: {str(e)}")
+
+if mostra_tabella:
+    if tabella_selezionata == "Database vuoto":
+        st.error("Inizializza il database per poter utilizzare questa funzione")
+    else:
+        if tabella_selezionata in ['opp_data', 'attribution_data', 'transaction_data']:
+            show_table_data(tabella_selezionata, start_date, end_date, update_type_opp)
+        else:
+            show_table_data(tabella_selezionata, start_date, end_date)
 
 if elimina_tabella:
     if tabella_selezionata == "Database vuoto":
