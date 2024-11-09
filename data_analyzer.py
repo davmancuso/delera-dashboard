@@ -33,7 +33,8 @@ class MetaAnalyzer(BaseAnalyzer):
             'campagne_attive': df["campaign"].nunique(),
             'spesa_giornaliera': df.groupby('date')['spend'].sum().reset_index(),
             'dettaglio_campagne': self.get_campaign_details(df),
-            'dettaglio_ad': self.get_ad_details(df)
+            'dettaglio_ad': self.get_ad_details(df),
+            'age_data': self.get_age_data(df)
         }
 
         for r in [aggregate_results]:
@@ -53,6 +54,15 @@ class MetaAnalyzer(BaseAnalyzer):
         results = self.aggregate_results(df)
         results_comp = self.aggregate_results(df_comp, is_comparison=True)
         return results, results_comp
+
+    def get_age_data(self, df):
+        return df.groupby('age').agg({
+            'spend': 'sum',
+            'impressions': 'sum',
+            'outbound_clicks_outbound_click': 'sum',
+            'actions_lead': 'sum',
+            'actions_purchase': 'sum'
+        }).reset_index()
     
     def get_campaign_details(self, df):
         dettaglioCampagne = df.groupby('adset_name').agg({

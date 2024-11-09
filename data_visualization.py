@@ -103,6 +103,57 @@ def meta_attribution_metrics(results, results_comp, attribution_results, attribu
         cpl_vinti_delta = get_metric_delta(cpl_vinti, cpl_vinti_comp)
         display_metric("Cpl Vinti", currency(cpl_vinti), cpl_vinti_delta, is_delta_inverse=True)
 
+def meta_age_analysis(results):
+    age_data = results['age_data']
+    
+    if age_data is None:
+        st.error("Dati sull'età non disponibili.")
+        return  
+
+    col1, col2 = st.columns(2)
+    with col1:
+        fig_lead = px.bar(
+            age_data, 
+            x='age', 
+            y='impressions',
+            title='Impression per Fascia d\'Età',
+            labels={'age': 'Fascia d\'Età', 'impressions': 'Impression'},
+            color='age'
+        )
+        st.plotly_chart(fig_lead)
+    with col2:
+        fig_lead = px.bar(
+            age_data, 
+            x='age', 
+            y='outbound_clicks_outbound_click',
+            title='Click per Fascia d\'Età',
+            labels={'age': 'Fascia d\'Età', 'outbound_clicks_outbound_click': 'Click'},
+            color='age'
+        )
+        st.plotly_chart(fig_lead)
+
+    col3, col4 = st.columns(2)
+    with col3:
+        fig_lead = px.bar(
+            age_data, 
+            x='age', 
+            y='actions_lead',
+            title='Lead Totali per Fascia d\'Età',
+            labels={'age': 'Fascia d\'Età', 'actions_lead': 'Lead'},
+            color='age'
+        )
+        st.plotly_chart(fig_lead)
+    with col4:
+        fig_acquisti = px.bar(
+            age_data, 
+            x='age', 
+            y='actions_purchase',
+            title='Acquisti Totali per Fascia d\'Età',
+            labels={'age': 'Fascia d\'Età', 'actions_purchase': 'Acquisti'},
+            color='age'
+        )
+        st.plotly_chart(fig_acquisti)
+
 def meta_campaign_details(dettaglioCampagne):
     if dettaglioCampagne is None:
         st.error("Dati dettaglio campagne non disponibili.")
@@ -135,7 +186,6 @@ def meta_campaign_details(dettaglioCampagne):
         st.warning("Nessun record trovato per i filtri selezionati.")
     else:
         st.dataframe(filtra_dettaglioCampagne,
-            height=400,
             use_container_width=True,
             column_config={
                 "Spesa": st.column_config.NumberColumn(
@@ -221,7 +271,6 @@ def meta_ad_details(dettaglioAd):
         st.warning("Nessun record trovato per i filtri selezionati.")
     else:
         st.dataframe(filtra_dettaglioAd,
-            height=400,
             column_config={
                 "Link": st.column_config.LinkColumn(
                     "Link",
@@ -289,6 +338,13 @@ def meta_analysis(results, results_comp, attribution_results, attribution_result
             st.error(f"Si è verificato un errore durante l'elaborazione delle metriche di attribuzione di Meta: {str(e)}")
     with col4:
         pass
+
+    st.title("Analisi demografica")
+
+    try:
+        meta_age_analysis(results)
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione dell'analisi dell'età di Meta: {str(e)}")
 
     st.title("Dettaglio delle campagne")
 
