@@ -108,51 +108,46 @@ def meta_age_analysis(results):
     
     if age_data is None:
         st.error("Dati sull'età non disponibili.")
-        return  
+        return
 
-    col1, col2 = st.columns(2)
-    with col1:
-        fig_lead = px.bar(
-            age_data, 
-            x='age', 
-            y='impressions',
-            title='Impression per Fascia d\'Età',
-            labels={'age': 'Fascia d\'Età', 'impressions': 'Impression'},
-            color='age'
-        )
-        st.plotly_chart(fig_lead)
-    with col2:
-        fig_lead = px.bar(
-            age_data, 
-            x='age', 
-            y='outbound_clicks_outbound_click',
-            title='Click per Fascia d\'Età',
-            labels={'age': 'Fascia d\'Età', 'outbound_clicks_outbound_click': 'Click'},
-            color='age'
-        )
-        st.plotly_chart(fig_lead)
+    required_columns = ['age', 'outbound_clicks_outbound_click', 'actions_lead', 'actions_purchase']
+    for col in required_columns:
+        if col not in age_data.columns:
+            st.error(f"Colonna mancante nei dati: {col}")
+            return
 
-    col3, col4 = st.columns(2)
-    with col3:
-        fig_lead = px.bar(
-            age_data, 
-            x='age', 
-            y='actions_lead',
-            title='Lead Totali per Fascia d\'Età',
-            labels={'age': 'Fascia d\'Età', 'actions_lead': 'Lead'},
-            color='age'
-        )
-        st.plotly_chart(fig_lead)
-    with col4:
-        fig_acquisti = px.bar(
-            age_data, 
-            x='age', 
-            y='actions_purchase',
-            title='Acquisti Totali per Fascia d\'Età',
-            labels={'age': 'Fascia d\'Età', 'actions_purchase': 'Acquisti'},
-            color='age'
-        )
-        st.plotly_chart(fig_acquisti)
+    fasce_eta = age_data['age'].unique().tolist()
+
+    num_colonne_per_riga = 3
+    num_fasce = len(fasce_eta)
+    num_righe = (num_fasce + num_colonne_per_riga - 1) // num_colonne_per_riga
+
+    for riga in range(num_righe):
+        cols = st.columns(num_colonne_per_riga)
+        for col in range(num_colonne_per_riga):
+            indice_fascia = riga * num_colonne_per_riga + col
+            if indice_fascia >= num_fasce:
+                break
+            fascia = fasce_eta[indice_fascia]
+            dati_fascia = age_data[age_data['age'] == fascia].iloc[0]
+
+            fig = go.Figure(go.Funnel(
+                y=["Click", "Lead", "Acquisto"],
+                x=[dati_fascia['outbound_clicks_outbound_click'], dati_fascia['actions_lead'], dati_fascia['actions_purchase']],
+                marker=dict(color=["#636EFA", "#EF553B", "#00CC96"]),
+                textinfo="value+percent initial",
+                opacity=0.9
+            ))
+
+            fig.update_layout(
+                title_text=f"Funnel per Fascia d'Età: {fascia}",
+                funnelmode="stack",
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+
+            cols[col].plotly_chart(fig, use_container_width=True)
 
 def meta_campaign_details(dettaglioCampagne):
     if dettaglioCampagne is None:
