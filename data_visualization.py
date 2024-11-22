@@ -116,38 +116,27 @@ def meta_age_analysis(results):
             st.error(f"Colonna mancante nei dati: {col}")
             return
 
-    fasce_eta = age_data['age'].unique().tolist()
+    fascia_selezionata = st.selectbox("Seleziona la Fascia d'Età", age_data['age'].unique())
 
-    num_colonne_per_riga = 3
-    num_fasce = len(fasce_eta)
-    num_righe = (num_fasce + num_colonne_per_riga - 1) // num_colonne_per_riga
+    dati_fascia = age_data[age_data['age'] == fascia_selezionata].iloc[0]
 
-    for riga in range(num_righe):
-        cols = st.columns(num_colonne_per_riga)
-        for col in range(num_colonne_per_riga):
-            indice_fascia = riga * num_colonne_per_riga + col
-            if indice_fascia >= num_fasce:
-                break
-            fascia = fasce_eta[indice_fascia]
-            dati_fascia = age_data[age_data['age'] == fascia].iloc[0]
+    fig = go.Figure(go.Funnel(
+        y=["Click", "Lead", "Acquisto"],
+        x=[dati_fascia['outbound_clicks_outbound_click'], dati_fascia['actions_lead'], dati_fascia['actions_purchase']],
+        marker=dict(color=["#636EFA", "#EF553B", "#00CC96"]),
+        textinfo="value+percent initial",
+        opacity=0.9
+    ))
 
-            fig = go.Figure(go.Funnel(
-                y=["Click", "Lead", "Acquisto"],
-                x=[dati_fascia['outbound_clicks_outbound_click'], dati_fascia['actions_lead'], dati_fascia['actions_purchase']],
-                marker=dict(color=["#636EFA", "#EF553B", "#00CC96"]),
-                textinfo="value+percent initial",
-                opacity=0.9
-            ))
+    fig.update_layout(
+        title_text=f"Funnel per Fascia d'Età: {fascia_selezionata}",
+        funnelmode="stack",
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
 
-            fig.update_layout(
-                title_text=f"Funnel per Fascia d'Età: {fascia}",
-                funnelmode="stack",
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                margin=dict(l=20, r=20, t=40, b=20)
-            )
-
-            cols[col].plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 def meta_campaign_details(dettaglioCampagne):
     if dettaglioCampagne is None:
@@ -336,10 +325,14 @@ def meta_analysis(results, results_comp, attribution_results, attribution_result
 
     st.title("Analisi demografica")
 
-    try:
-        meta_age_analysis(results)
-    except Exception as e:
-        st.error(f"Si è verificato un errore durante l'elaborazione dell'analisi dell'età di Meta: {str(e)}")
+    col5, col6 = st.columns(2)
+    with col5:
+        try:
+            meta_age_analysis(results)
+        except Exception as e:
+            st.error(f"Si è verificato un errore durante l'elaborazione dell'analisi dell'età di Meta: {str(e)}")
+    with col6:
+        pass
 
     st.title("Dettaglio delle campagne")
 

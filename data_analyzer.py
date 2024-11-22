@@ -18,7 +18,7 @@ class MetaAnalyzer(BaseAnalyzer):
     
     def clean_data(self, df):
         return df.loc[
-            (df["account_id"] == st.secrets["facebook_account_id"]) &
+            (df["account_id"] == env('facebook_account_id')) &
             (~df["campaign"].str.contains(r"Ricerca figure")) &
             (~df["campaign"].str.contains(r"DENTALAI"))
         ]
@@ -139,7 +139,7 @@ class GadsAnalyzer(BaseAnalyzer):
     
     def clean_data(self, df):
         return df.loc[
-            (df["account_id"] == st.secrets["google_ads_account_id"])
+            (df["account_id"] == env('google_ads_account_id'))
         ]
     
     def aggregate_results(self, df, is_comparison=False):
@@ -217,7 +217,7 @@ class TikTokAnalyzer(BaseAnalyzer):
     
     def clean_data(self, df):
         return df.loc[
-            (df["account_id"] == st.secrets["tiktok_account_id"])
+            (df["account_id"] == env('tiktok_account_id'))
         ]
     
     def aggregate_results(self, df, is_comparison=False):
@@ -287,7 +287,7 @@ class GanalyticsAnalyzer(BaseAnalyzer):
     
     def clean_data(self, df):
         return df.loc[
-            (df["account_id"] == st.secrets["googleanalytics4_account_id"])
+            (df["account_id"] == env('googleanalytics4_account_id'))
         ]
     
     def aggregate_results(self, df, is_comparison=False):

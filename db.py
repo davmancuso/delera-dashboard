@@ -179,7 +179,8 @@ def get_data(table_name, start_date, end_date, custom_date_field='date'):
 def show_table_data(table_name, start_date, end_date, custom_date_field='date'):
     source = table_name.removesuffix("_data")
     if custom_date_field == 'date':
-        account_id = st.secrets[f"{source}_account_id"]
+        account_id_key = f"{source}_account_id"
+        account_id = env(account_id_key)
     else:
         account_id = None
 

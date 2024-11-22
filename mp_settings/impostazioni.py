@@ -117,11 +117,11 @@ st.session_state['lead_radio'] = lead_radio
 pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
     pool_size=5,
-    host=st.secrets["host"],
-    port=st.secrets["port"],
-    user=st.secrets["username"],
-    password=st.secrets["password"],
-    database=st.secrets["database"],
+    host=env('host'),
+    port=env('port'),
+    user=env('username'),
+    password=env('password'),
+    database=env('database'),
     auth_plugin='caching_sha2_password')
 
 # Data sources

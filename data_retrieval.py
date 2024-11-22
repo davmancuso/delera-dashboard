@@ -1,4 +1,5 @@
 import streamlit as st
+import environ
 import json
 from urllib.request import urlopen
 import pandas as pd
@@ -7,7 +8,10 @@ import mysql.connector
 from db import save_to_database
 
 def api_retrieving(data_source, fields, start_date, end_date):
-    url = f"{st.secrets.source}{data_source}?api_key={st.secrets.api_key}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
+    env = environ.Env()
+    environ.Env.read_env()
+
+    url = f"{env('source')}{data_source}?api_key={env('api_key')}&date_from={start_date}&date_to={end_date}&fields={fields}&_renderer=json"
     
     with urlopen(url) as response:
         data_json = json.load(response)
@@ -46,8 +50,8 @@ def opp_retrieving(pool, update_type, start_date, end_date):
                 JOIN opportunity_pipeline_stages ops ON o.pipelineStageId=ops.id
                 JOIN users u ON o.assignedTo = u.id
                 WHERE
-                    o.locationId='{st.secrets.id_cliente}'
-                    AND ops.pipelineId='{st.secrets.pipeline_vendita}'
+                    o.locationId='{env('id_cliente')}'
+                    AND ops.pipelineId='{env('pipeline_vendita')}'
                     AND o.{update_type} >= '{start_date}T00:00:00.000Z'
                     AND o.{update_type} <= '{end_date}T23:59:59.999Z';
             """
@@ -96,8 +100,8 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
                     LEFT JOIN contact_custom_fields ccf_data ON c.id = ccf_data.contactId AND ccf_data.id = 'ok7yK4uSS6wh0S2DnZrz'
                     LEFT JOIN contact_custom_fields ccf_fonte ON c.id = ccf_fonte.contactId AND ccf_fonte.id = 'UiALy82OthZAitbSZTOU'
                 WHERE
-                    o.locationId = '{st.secrets.id_cliente}'
-                    AND ops.pipelineId = '{st.secrets.pipeline_vendita}'
+                    o.locationId = '{env('id_cliente')}'
+                    AND ops.pipelineId = '{env('pipeline_vendita')}'
                     AND {filter_update} BETWEEN '{start_date}' AND '{end_date}';
             """
     
@@ -138,7 +142,7 @@ def transaction_retrieving(pool, start_date, end_date):
                 FROM
                     payment_transactions pay
                 WHERE
-                    pay.altId = '{st.secrets.id_cliente}'
+                    pay.altId = '{env('id_cliente')}'
                     AND pay.createdAt BETWEEN '{start_date}' AND '{end_date}';
             """
     
