@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import datetime
+import environ
 
 from config import STAGES, COMMERCIALI
 from db import get_data
@@ -17,6 +18,9 @@ class MetaAnalyzer(BaseAnalyzer):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
     
     def clean_data(self, df):
+        env = environ.Env()
+        environ.Env.read_env()
+
         return df.loc[
             (df["account_id"] == env('facebook_account_id')) &
             (~df["campaign"].str.contains(r"Ricerca figure")) &
@@ -138,6 +142,9 @@ class GadsAnalyzer(BaseAnalyzer):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
     
     def clean_data(self, df):
+        env = environ.Env()
+        environ.Env.read_env()
+
         return df.loc[
             (df["account_id"] == env('google_ads_account_id'))
         ]
@@ -216,6 +223,9 @@ class TikTokAnalyzer(BaseAnalyzer):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
     
     def clean_data(self, df):
+        env = environ.Env()
+        environ.Env.read_env()
+
         return df.loc[
             (df["account_id"] == env('tiktok_account_id'))
         ]
@@ -286,6 +296,9 @@ class GanalyticsAnalyzer(BaseAnalyzer):
         super().__init__(start_date, end_date, comparison_start, comparison_end)
     
     def clean_data(self, df):
+        env = environ.Env()
+        environ.Env.read_env()
+
         return df.loc[
             (df["account_id"] == env('googleanalytics4_account_id'))
         ]

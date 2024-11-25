@@ -1,4 +1,5 @@
 import streamlit as st
+import environ
 from datetime import datetime, timedelta
 import sqlite3
 import mysql.connector
@@ -114,6 +115,9 @@ st.session_state['lead_radio'] = lead_radio
 
 # Database connection
 # ------------------------------
+env = environ.Env()
+environ.Env.read_env()
+
 pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
     pool_size=5,
