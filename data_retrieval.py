@@ -36,6 +36,9 @@ def api_retrieve_data(source, fields, start_date, end_date):
 def opp_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
+
+    env = environ.Env()
+    environ.Env.read_env()
     
     query = f"""
                 SELECT
@@ -76,6 +79,9 @@ def opp_retrieving(pool, update_type, start_date, end_date):
 def attribution_retrieving(pool, update_type, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
+
+    env = environ.Env()
+    environ.Env.read_env()
     
     if update_type == "data_acquisizione":
         filter_update = f"FROM_UNIXTIME(ccf_data.value / 1000, '%Y-%m-%d')"
@@ -129,6 +135,9 @@ def attribution_retrieving(pool, update_type, start_date, end_date):
 def transaction_retrieving(pool, start_date, end_date):
     conn = pool.get_connection()
     cursor = conn.cursor()
+
+    env = environ.Env()
+    environ.Env.read_env()
     
     query = f"""
                 SELECT
