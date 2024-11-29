@@ -20,13 +20,14 @@ ppc_meta = st.Page("mp_ppc/meta.py", title="Meta Ads", icon=":material/rocket_la
 ppc_google_ads = st.Page("mp_ppc/google_ads.py", title="Google Ads", icon=":material/rocket_launch:")
 ppc_tiktok = st.Page("mp_ppc/tiktok.py", title="TikTok Ads", icon=":material/rocket_launch:")
 google_analytics = st.Page("mp_traffico/google_analytics.py", title="Google Analytics", icon=":material/query_stats:")
+account_key = st.Page("mp_settings/account_key.py", title="Chiavi di accesso", icon=":material/key:")
 settings_page = st.Page("mp_settings/impostazioni.py", title="Impostazioni", icon=":material/settings:")
 
 pg = st.navigation({
     "Vendite": [vendite, venditori],
     "Marketing": [ppc_meta, ppc_google_ads, ppc_tiktok],
     "Traffico": [google_analytics],
-    "Impostazioni": [settings_page]
+    "Impostazioni": [settings_page, account_key]
     })
 
 pg.run()

@@ -5,7 +5,7 @@ import sqlite3
 import mysql.connector
 
 from config import STAGES, FIELDS
-from db import initialize_database, delete_table, show_table_data
+from db import initialize_database, delete_table, show_table_data, add_column, delete_column, delete_table_data
 from data_retrieval import api_retrieve_data, opp_retrieving, attribution_retrieving, transaction_retrieving
 
 # ------------------------------
@@ -86,8 +86,22 @@ with col7:
 with col8:
     mostra_tabella = st.button("Visualizza i dati della tabella", use_container_width=True)
 with col9:
-    elimina_tabella = st.button("Elimina la tabella", use_container_width=True)
+    elimina_dati_tabella = st.button("Elimina i dati della tabella", use_container_width=True)
 with col10:
+    elimina_tabella = st.button("Elimina la tabella", use_container_width=True)
+
+col11, col12 = st.columns([1,1])
+with col11:
+    column_name = st.text_input("Nome della colonna", value="")
+with col12:
+    column_type = st.text_input("Tipo della colonna", value="TEXT")
+
+col13, col14, col15 = st.columns([1,1,2])
+with col13:
+    add_column_button = st.button("Aggiungi la colonna", use_container_width=True)
+with col14:
+    delete_column_button = st.button("Elimina la colonna", use_container_width=True)
+with col15:
     pass
 
 # Variabili d'ambiente
@@ -197,12 +211,26 @@ if mostra_tabella:
         else:
             show_table_data(tabella_selezionata, start_date, end_date)
 
+if elimina_dati_tabella:
+    if tabella_selezionata == "Database vuoto":
+        st.error("Inizializza il database per poter utilizzare questa funzione")
+    else:
+        delete_table_data(tabella_selezionata)
+
 if elimina_tabella:
     if tabella_selezionata == "Database vuoto":
         st.error("Inizializza il database per poter utilizzare questa funzione")
     else:
-        try:
-            delete_table(tabella_selezionata)
-            st.success(f"Tabella {tabella_selezionata} eliminata correttamente")
-        except Exception as e:
-            st.error(f"Errore durante l'eliminazione della tabella: {str(e)}")
+        delete_table(tabella_selezionata)
+
+if add_column_button:
+    if column_name:
+        add_column(tabella_selezionata, column_name, column_type)
+    else:
+        st.error("Inserisci il nome della colonna da aggiungere")
+
+if delete_column_button:
+    if column_name:
+        delete_column(tabella_selezionata, column_name)
+    else:
+        st.error("Inserisci il nome della colonna da eliminare")

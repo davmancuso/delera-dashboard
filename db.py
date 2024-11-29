@@ -1,6 +1,7 @@
 import sqlite3
 import streamlit as st
 import pandas as pd
+import environ
 
 from config import FIELDS
 
@@ -116,13 +117,57 @@ def initialize_database():
     conn.commit()
     conn.close()
 
-def delete_table(table_name):
+def add_column(table_name, column_name, column_type):
     conn = sqlite3.connect('local_data.db')
     cursor = conn.cursor()
-    cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+    
+    try:
+        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+        st.success(f"Colonna {column_name} aggiunta correttamente")
+    except sqlite3.OperationalError as e:
+        st.error(f"Errore durante l'aggiunta della colonna {column_name}: {e}")
+
     conn.commit()
     conn.close()
 
+def delete_column(table_name, column_name):
+    conn = sqlite3.connect('local_data.db')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(f"ALTER TABLE {table_name} DROP COLUMN {column_name}")
+        st.success(f"Colonna {column_name} eliminata correttamente")
+    except sqlite3.OperationalError as e:
+        st.error(f"Errore durante l'eliminazione della colonna {column_name}: {e}")
+
+    conn.commit()
+    conn.close()
+
+def delete_table(table_name):
+    conn = sqlite3.connect('local_data.db')
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+        st.success(f"Tabella {table_name} eliminata correttamente")
+    except sqlite3.OperationalError as e:
+        st.error(f"Errore durante l'eliminazione della tabella {table_name}: {e}")
+    
+    conn.commit()
+    conn.close()
+
+def delete_table_data(table_name):
+    conn = sqlite3.connect('local_data.db')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(f"DELETE FROM {table_name}")
+        st.success(f"Dati della tabella {table_name} eliminati correttamente")
+    except sqlite3.OperationalError as e:
+        st.error(f"Errore durante l'eliminazione dei dati della tabella {table_name}: {e}")
+
+    conn.commit()
+    conn.close()
 
 def save_to_database(df, table_name, is_api=True):
     conn = sqlite3.connect('local_data.db')
@@ -177,6 +222,9 @@ def get_data(table_name, start_date, end_date, custom_date_field='date'):
     return df
 
 def show_table_data(table_name, start_date, end_date, custom_date_field='date'):
+    env = environ.Env()
+    environ.Env.read_env()
+    
     source = table_name.removesuffix("_data")
     if custom_date_field == 'date':
         account_id_key = f"{source}_account_id"
